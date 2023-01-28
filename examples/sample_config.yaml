@@ -1,0 +1,64 @@
+mount_dir: /home/horn/mnt/tgmount1
+
+client:
+  session: tgfs
+  api_id: 123
+  api_hash: deadbeed121212121
+
+message_sources:
+  
+  ru2chmu:
+    entity: ru2chmu
+    filter: InputMessagesFilterDocument
+    updates: False
+    limit: 1000
+
+  friends:
+    entity: -388004022
+    limit: 1000
+    
+caches:
+  memory1:
+    type: memory
+    capacity: 300MB
+    block_size: 128KB
+
+root:
+ 
+  muzach:
+    source: {source: ru2chmu, recursive: True}
+    music:
+      filter: 
+        # the directory will contain music and zip archives
+        Union: [MessageWithMusic, MessageWithZip]
+      # zip archives will be mounted as folders
+      producer: UnpackedZip
+      # using cache speeds up reading from the archives
+      cache: memory1
+    texts:
+      filter: MessageWithText
+      # this commands tgmount to treat messages with both document and text
+      # as text files
+      treat_as: MessageWithText
+
+  friends:
+    source: {source: friends, recursive: True}
+    music-by-senders:
+      producer:
+        # this producer creates a separate directory for every sender in the entity
+        BySender:
+          dir_structure:
+            # these directories will only contain 
+            filter: MessageWithMusic
+    liked-music:
+      # this directory will be containing all music with thumb up reaction
+      filter: 
+        And: 
+          - MessageWithMusic
+          - ByReaction: 
+              reaction: 👍
+    texts:
+      filter: MessageWithText
+      # this commands tgmount to treat file with both document and text
+      # as text messages
+      treat_as: MessageWithText

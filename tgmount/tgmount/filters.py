@@ -60,6 +60,7 @@ class ByReaction(FilterAllMessagesProto):
         parse_filter: ParseFilter,
     ):
         reaction = props.get("reaction")
+        
         if reaction is None:
             raise TgmountError(f"Missing reaction")
 
@@ -286,20 +287,6 @@ class First(FilterAllMessagesProto):
     async def filter(self, messages: Iterable[Message]) -> list[Message]:
         return list(messages)[: self._count]
 
-
-# def from_try_get(g: TryGetFunc) -> Type[Filter]:
-#     class FromTryGet(FilterAllMessagesProto):
-#         def __init__(self, **kwargs) -> None:
-#             pass
-
-#         async def filter(self, messages: Iterable[Message]) -> list[Message]:
-#             return list(filter(lambda m: g(m) is not None, messages))
-
-#         @staticmethod
-#         def from_config(gs, ctx: FilterFromConfigContext, parse_filter: ParseFilter):
-#             return FromTryGet()
-
-#     return FromTryGet
 
 
 def from_guard(g: Callable[[Any], bool]) -> Type[Filter]:

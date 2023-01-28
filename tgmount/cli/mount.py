@@ -102,7 +102,14 @@ async def mount(
     if yes(producer):
         root_content["producer"] = args.producer
 
-    # logger.debug(f"{root_content}")
+        if args.producer == 'UnpackedZip':
+            root_content['cache'] = {
+                'type': 'memory',
+                'capacity': '300MB',
+                'block_size': '128KB'
+            }
+
+    logger.debug(f"{root_content}")
 
     cfg = config.Config(
         client=config.Client(

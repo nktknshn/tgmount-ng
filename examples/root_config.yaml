@@ -7,19 +7,13 @@ docs:
           - ByExtension: .zip
 .sysinfo:
   producer: SysInfo
-mixed-audio:
-  filter: MessageWithZip
-  music:
-    filter: MessageWithMusic
-  voices:
-    filter: MessageWithVoice
 music:
   filter: MessageWithMusic
 reactions:
   filter: MessageWithReactions
 zips:
   filter: MessageWithZip
-personal:
+voice-and-round:
   filter:
     Union: [MessageWithKruzhochek, MessageWithVoice]
 video:
@@ -57,21 +51,12 @@ top-likes:
         minimum: 5
 unpacked:
   filter: MessageWithZip
-  # it's recommended to use cache with ZipsAsDirs. otherwise it is slow
+  producer: 
+    UnpackedZip: 
+      skip_folder_if_single_subfolder: True
+      hide_sources: False
+  # it's recommended to use cache with UnpackedZip. otherwise it is slow
   cache: 
     type: memory
     block_size: 256KB
     capacity: 300MB
-  wrappers:
-    - ZipsAsDirs:
-  #       skip_folder_if_single_subfolder: True
-  #       hide_sources: True
-
-# by-sender:
-#   filter: All
-#   producer:
-#     BySender:
-#       use_get_sender: true
-#       dir_structure:
-#         <<: *ogranized
-

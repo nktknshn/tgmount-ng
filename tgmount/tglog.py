@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import tgmount
+# from tgmount.tgmount.root_config_reader import TgmountConfigReader
 from tgmount.util import yes
 
 
@@ -13,6 +14,8 @@ def init_logging(debug_level: int = 0):
     tgmount.cli.logger.setLevel(debug_level)
 
     tgmount.tgmount.filters.logger.setLevel(logging.INFO)
+    # tgmount.tgmount.root_config_reader.TgmountConfigReader.logger.setLevel(logging.INFO)
+
     tgmount.tgmount.producers.producer_plain.VfsTreeProducerPlainDir.logger.setLevel(
         logging.INFO
     )

@@ -15,8 +15,7 @@ caches:
     capacity: 50MB
     block_size: 128KB
 
-# every source is a separate get_messages request
-
+# some template structures for the root config
 ogranized: &ogranized
   filter: { filter: [OnlyUniqueDocs], recursive: True }
   docs:
@@ -89,6 +88,7 @@ by-sender: &by-sender
       dir_structure:
         <<: *ogranized
 
+# every source is a separate get_messages request
 message_sources:
   ru2chmu:
     entity: ru2chmu
@@ -104,8 +104,8 @@ message_sources:
     updates: True
     offset_date: 25/01/2023
 
+# root config
 root:
-
   ru2chmu:
     source: { source: ru2chmu, recursive: True }
     <<: *ogranized

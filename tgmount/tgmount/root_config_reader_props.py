@@ -10,11 +10,14 @@ from .types import TgmountRootType
 
 T = TypeVar("T")
 
+from .logger import module_logger
 
 class RootProducerPropsReader:
     PROPS_KEYS = {"source", "filter", "cache", "wrappers", "producer", "treat_as"}
 
     PropSourceType = TypedDict("PropSource", source_name=str, recursive=bool)
+
+    logger = module_logger.getChild(f'RootProducerPropsReader')
 
     @classmethod
     def read_prop_source(cls, d: TgmountRootType) -> PropSourceType | None:
@@ -192,19 +195,27 @@ class RootProducerPropsReader:
         resources: TgmountResources,
         ctx: RootConfigWalkingContext,
     ) -> list[Filter]:
+
         def _parse_filter(filt: FilterConfigValue) -> list[Filter]:
+            self.logger.info(f'filt={filt}')
+            
             filter_prop = self.read_prop_filter({"filter": filt})
+
             if filter_prop is None:
                 return []
+            
             return self.get_filters_from_prop(filter_prop["filters"], resources, ctx)
 
         filters = []
+
         for f_name, f_arg in filter_prop:
+            self.logger.info(f"{f_name} {f_arg}")
+
             filter_cls = resources.filters.get(f_name)
 
             if filter_cls is None:
                 raise config.ConfigError(
-                    f"missing filter: {f_name} in {ctx.current_path}"
+                    f"Missing filter: {f_name} in {ctx.current_path}"
                 )
 
             _filter = filter_cls.from_config(f_arg, ctx, _parse_filter)
