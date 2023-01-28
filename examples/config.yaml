@@ -1,0 +1,121 @@
+# optional. may be specified as command line argument
+mount_dir: /home/horn/mnt/tgmount1
+# client settings
+client:
+  session: tgfs
+  api_id: 123
+  api_hash: deadbeed121212121
+  request_size: 128KB
+
+# caches
+caches:
+  # will instantiate a single in memory cache
+  memory1:
+    type: memory
+    capacity: 50MB
+    block_size: 128KB
+
+# every source is a separate get_messages request
+
+ogranized: &ogranized
+  filter: { filter: [OnlyUniqueDocs], recursive: True }
+  docs:
+    filter:
+      - MessageWithOtherDocument
+      - Not:
+          - ByExtension: .zip
+  mixed-audio:
+    filter: MessageWithZip
+    music:
+      filter: MessageWithMusic
+    voices:
+      filter: MessageWithVoice
+  music:
+    filter: MessageWithMusic
+  reactions:
+    filter: MessageWithReactions
+  zips:
+    filter: MessageWithZip
+  personal:
+    filter:
+      Union: [MessageWithKruzhochek, MessageWithVoice]
+  video:
+    filter: MessageWithVideoFile
+  images:
+    filter:
+      Union: [MessageWithDocumentImage, MessageWithCompressedPhoto]
+  stickers:
+    filter:
+      Union: [MessageWithAnimated, MessageWithSticker]
+  messages:
+    filter: MessageWithText
+    treat_as: MessageWithText
+  all:
+    filter: All
+  by-forward: 
+    filter: MessageForwarded
+    producer: ByForward  
+  music-by-performer:
+    filter: MessageWithMusic
+    producer: ByPerformer
+  forwareded-video:
+    filter:
+      And: [MessageForwarded, MessageWithVideo]
+  by-reactions: 
+    producer: ByReactions      
+  likes: 
+    filter: 
+      - ByReaction: 
+          reaction: 👍
+  top-likes: 
+    filter: 
+      - ByReaction: 
+          reaction: 👍
+          minimum: 5
+  unpacked:
+    filter: MessageWithZip
+    cache: memory1
+    producer: 
+      UnpackedZip:
+        skip_folder_if_single_subfolder: True
+        hide_sources: True
+  wrappers: ExcludeEmptyDirs
+
+by-sender: &by-sender
+  filter: All
+  producer:
+    BySender:
+      use_get_sender: true
+      dir_structure:
+        <<: *ogranized
+
+message_sources:
+  ru2chmu:
+    entity: ru2chmu
+    limit: 1000
+    updates: True
+    filter: InputMessagesFilterDocument
+  tmtc:
+    entity: tgmounttestingchannel
+    filter: InputMessagesFilterDocument
+  ru_python:
+    entity: ru_python
+    limit: 1000
+    updates: True
+    offset_date: 25/01/2023
+
+root:
+
+  ru2chmu:
+    source: { source: ru2chmu, recursive: True }
+    <<: *ogranized
+    by-sender: *by-sender
+  tmtc:
+    source: { source: tmtc, recursive: True }
+    <<: *ogranized
+    by-sender:
+      <<: *by-sender
+
+  .sysinfo:
+    source: { source: ru2chmu, recursive: True }
+    producer: SysInfo
