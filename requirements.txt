@@ -1,0 +1,8 @@
+telethon
+pyfuse3
+typing_extensions
+pytest
+greenback
+aiofiles
+pytest-asyncio
+pyyaml
