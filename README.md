@@ -147,11 +147,11 @@ More about config structure read in [Config file structure]()
 
 
 ```
-cli.py mount --filter FILTER [--filter FILTER] [--root-config ROOT_CONFIG] 
-[--producer PRODUCER] [--offset-date OFFSET_DATE] [--offset-id OFFSET_ID] [--max-id 
-MAX_ID] [--min-id MIN_ID] [--wait_time WAIT_TIME] [--limit LIMIT] [--reply-to 
-REPLY_TO] [--from-user FROM_USER] [--reverse] [--no-updates] [--debug-fuse] 
-[--min-tasks MIN_TASKS] entity mount-dir
+cli.py mount --filter FILTER [--filter FILTER] [--root-config ROOT_CONFIG]
+[--producer PRODUCER] [--offset-date OFFSET_DATE] [--offset-id OFFSET_ID] 
+[--max-id MAX_ID] [--min-id MIN_ID] [--wait_time WAIT_TIME] [--limit LIMIT] 
+[--reply-to REPLY_TO] [--from-user FROM_USER] [--reverse] [--no-updates] 
+[--debug-fuse] [--min-tasks MIN_TASKS] entity mount-dir
 ```
 
 
@@ -247,7 +247,7 @@ Config file has the following sections:
 # 
 mount_dir: ~/mnt/tgmount
 ```
-### **`client` section**
+### client
 
 Contains settings for the telegram client
 
@@ -264,7 +264,7 @@ client:
   request_size: 128KB
 ```
 
-### **`message_sources`** section
+### message_sources
 A message source defines a list of messages that will be used in vfs tree construction. Every message source is a separate [TelegramClient.get_messages]((https://docs.telethon.dev/en/stable/modules/client.html#telethon.client.messages.MessageMethods.get_messages)
 ) request. Message source is also subscribed to events of posting, removing and editing messages in the entity it is sourced from. 
 
@@ -300,9 +300,9 @@ message_sources:
     offset_date: None
 ```
 
-### `caches` section
+### caches
 
-Defines cache storages for documents. Cached parts of a document will not be fetched twice. Usually this is not needed because OS file system does the caching by itself. Cache is needed in pair with `UnpackedZip` producer since the OS file system cache is not applied in case of using this producer.
+Defines cache storages for documents. Cached parts of a document will not be fetched twice. Usually this is not needed because OS file system caching by itself. Cache is needed in couple with `UnpackedZip` producer since the OS file system cache is not applied in case of using this producer.
 
 ```yaml
 caches:
@@ -316,7 +316,7 @@ caches:
     block_size: 256KB
 ```
 
-### `root` section
+### root
 
 This section defines the structure of the mounted folder.
 
@@ -326,8 +326,6 @@ root:
   # set and there is no recursive filter has been defined before, the folder 
   # will not contain any files
   source: source1
-
-  # same
   source: {source: source1}
 
   # sets the message source for the current and for nested folders
@@ -377,7 +375,7 @@ root:
   # optional. wrapper that modifies the resulting content of the folder 
   wrapper: ExcludeEmptyDirs
 
-  # optional. Defines the priority of how to classify messages if multiple classes
+  # optional. Defines the priority of how to classify a message if multiple classes
   # match its type. E.g. a message with both a document and a text message  
   treat_as: MessageWithText
 
@@ -393,7 +391,7 @@ root:
 ```
 
 
-#### `source`
+#### source
 
 Message source is a list of messages which is used to produce a directory content. Message source is initialized from get_messages() request and is updated by events of posting message, removing message and editing message in the corresponding entity. 
 
@@ -481,14 +479,21 @@ root:
 
 Note that
 1. The root itself will not contain any files because source with recursive flag doesn't trigger file producing
-2. We had to specify `filter` in `everything` to trigger file producer. For the same effect we could have also specified a producer.
+2. We had to specify `filter` in `everything` to trigger file producer. For the same effect we could have specified a producer instead.
 ```yaml
 everything:
   # triggers producing from the recusrive filter
   producer: PlainDir
 ```  
 
-#### `filters`
+The complete rules:
+
+A dir will be produced with content from messages source in cases when:
+1. source is specified and it's not recursive
+2. recursive source is in the context and a filters property specified and it's not recursive
+3. recursive source is in the context and producer prop is specified
+
+#### filters
 
 By message type:
 
@@ -591,8 +596,6 @@ ByReactions
 SysInfo
 UnpackedZip
 ```
-
-### Rules 
 
 
 ## Known bugs
