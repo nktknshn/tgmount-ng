@@ -94,7 +94,9 @@ caches:
 
 root:
   muzach:
-    # A document will not be mounted more than once when it appears in a different messages. `recursive` means this filter will also be applied down the folders tree
+    # A document will not be mounted more than once when it appears in a 
+    # different messages. `recursive` means this filter will also be applied 
+    # down the folders tree
     filter: { filter: OnlyUniqueDocs, recursive: True }
     # Messages from `ru2chmu` will be used to produce content in the nested folders
     source: { source: ru2chmu, recursive: True }
@@ -275,7 +277,8 @@ message_sources:
     # whether to listen for updates. Default: true
     updates: True
 
-    # Filter for message types. If not set all the messages types including text messages will be fetched
+    # Filter for message types. If not set all the messages types including text 
+    # messages will be fetched
     filter: InputMessagesFilterDocument
 
     # limits the number of messages
@@ -315,7 +318,9 @@ This section defines the structure of the mounted folder.
 
 ```yaml
 root:
-  # optional. sets the message source for the current directory. If this is not set and there is no recursive filter has been defined before, the folder will not contain any files
+  # optional. sets the message source for the current directory. If this is not
+  # set and there is no recursive filter has been defined before, the folder 
+  # will not contain any files
   source: source1
 
   # same
@@ -368,7 +373,8 @@ root:
   # optional. wrapper that modifies the resulting content of the folder 
   wrapper: ExcludeEmptyDirs
 
-  # optional. Defines the priority of how to classify messages if multiple classes match its type. E.g. a message with both a document and a text message  
+  # optional. Defines the priority of how to classify messages if multiple classes
+  # match its type. E.g. a message with both a document and a text message  
   treat_as: MessageWithText
 
   # to define subfolders
@@ -483,7 +489,8 @@ everything:
 By message type:
 
 ```python
-MessageWithDocument # Message with a document attached (message with compressed image doesn't match) 
+MessageWithDocument # Message with a document attached (message with compressed
+#  image doesn't match) 
 MessageWithCompressedPhoto # with a compressed image
 MessageDownloadable # `MessageWithDocument` or `MessageWithCompressedPhoto`
 MessageWithAnimated # stickers, gifs
@@ -547,7 +554,8 @@ ByExtension: .zip
 
 # will only leave unique docs
 OnlyUniqueDocs:
-  # optional. Control which document first appeared or last appeared will stay. default: first
+  # optional. Control which document first appeared or last appeared will stay.
+  # default: first
   picker: last 
   picker: first 
 
