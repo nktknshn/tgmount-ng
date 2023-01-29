@@ -1,10 +1,8 @@
 from abc import abstractmethod
 from typing import Any, Iterable, Mapping, Optional, Protocol, Type, TypeVar, Callable
 
-from telethon.tl import types
 from tgmount.tgclient.guards import *
 
-from telethon.tl.custom import Message
 
 from tgmount.tgmount.error import TgmountError
 
@@ -60,7 +58,7 @@ class ByReaction(FilterAllMessagesProto):
         parse_filter: ParseFilter,
     ):
         reaction = props.get("reaction")
-        
+
         if reaction is None:
             raise TgmountError(f"Missing reaction")
 
@@ -105,7 +103,7 @@ class ByTypes(FilterAllMessagesProto):
             filter_types=[ctx.file_factory.try_get_dict[g] for g in gs],
         )
 
-    async def filter(self, messages: Iterable[Message]):
+    async def filter(self, messages: Iterable[MessageProto]):
         return list(
             filter(compose_try_gets(*self._filter_types), messages),
         )
@@ -150,7 +148,7 @@ class OnlyUniqueDocs(FilterAllMessagesProto):
         return [*result, *non_downloadable]
 
 
-class ByExtension(FilterAllMessagesProto):
+class ByExtension(FilterAllMessagesProto[MessageProto]):
     logger = logger.getChild("ByExtension")
 
     def __init__(self, ext: str) -> None:
@@ -160,14 +158,15 @@ class ByExtension(FilterAllMessagesProto):
     def from_config(ext: str, ctx: FilterContext, parse_filter: ParseFilter):
         return ByExtension(ext)
 
-    async def filter(self, messages: Iterable[Message]) -> list[Message]:
+    async def filter(self, messages: Iterable[MessageProto]) -> list[MessageProto]:
         self.logger.debug(f"filtering {messages} by extension {self.ext}")
-        res = [
+        res: list[MessageProto] = [
             m
             for m in filter(guards.MessageWithFilename.guard, messages)
             if m.file.ext == self.ext
         ]
         self.logger.debug(f"result={res}")
+        
         return res
 
 
@@ -183,7 +182,7 @@ class Not(FilterAllMessagesProto):
     ):
         return Not(parse_filter(_filter))
 
-    async def filter(self, messages: Iterable[Message]) -> list[Message]:
+    async def filter(self, messages: Iterable[MessageProto]) -> list[MessageProto]:
         _ms = list(messages)
 
         for f in self.filters:
@@ -202,7 +201,7 @@ class Union(FilterAllMessagesProto):
     ):
         return Union(filters=parse_filter(gs))
 
-    async def filter(self, messages: Iterable[Message]):
+    async def filter(self, messages: Iterable[MessageProto]):
         _ms = []
         for f in self.filters:
             _ms.extend(await f.filter(messages))
@@ -244,7 +243,7 @@ class Seq(FilterAllMessagesProto):
     ):
         return Seq(filters=parse_filter(gs))
 
-    async def filter(self, messages: Iterable[Message]):
+    async def filter(self, messages: Iterable[MessageProto]):
         messages = list(messages)
         for f in self.filters:
             messages = await f.filter(messages)
@@ -260,7 +259,7 @@ class All(FilterAllMessagesProto):
     def from_config(d: dict, ctx: FilterContext, parse_filter: ParseFilter):
         return All()
 
-    async def filter(self, messages: Iterable[Message]) -> list[Message]:
+    async def filter(self, messages: Iterable[MessageProto]) -> list[MessageProto]:
         return list(messages)
 
 
@@ -272,7 +271,7 @@ class Last(FilterAllMessagesProto):
     def from_config(arg: int, ctx: FilterContext, parse_filter: ParseFilter):
         return Last(count=arg)
 
-    async def filter(self, messages: Iterable[Message]) -> list[Message]:
+    async def filter(self, messages: Iterable[MessageProto]) -> list[MessageProto]:
         return list(messages)[-self._count :]
 
 
@@ -284,7 +283,7 @@ class First(FilterAllMessagesProto):
     def from_config(arg: int, ctx: FilterContext, parse_filter: ParseFilter):
         return Last(count=arg)
 
-    async def filter(self, messages: Iterable[Message]) -> list[Message]:
+    async def filter(self, messages: Iterable[MessageProto]) -> list[MessageProto]:
         return list(messages)[: self._count]
 
 
@@ -294,7 +293,7 @@ def from_guard(g: Callable[[Any], bool]) -> Type[Filter]:
         def __init__(self, **kwargs) -> None:
             pass
 
-        async def filter(self, messages: Iterable[Message]) -> list[Message]:
+        async def filter(self, messages: Iterable[MessageProto]) -> list[MessageProto]:
             return list(filter(lambda m: g(m), messages))
 
         @staticmethod
@@ -319,18 +318,18 @@ def from_context_classifier(klass_name: str) -> Type[FilterFromConfigProto]:
     return from_function(from_config)
 
 
-telegram_filter_filter = {
-    "InputMessagesFilterPhotos": from_guard(MessageWithCompressedPhoto.guard)(),
-    "InputMessagesFilterVideo": from_guard(MessageWithVideo.guard)(),
+telegram_filters_to_filter_type: Mapping[str, Type[Filter]] = {
+    "InputMessagesFilterPhotos": from_guard(MessageWithCompressedPhoto.guard),
+    "InputMessagesFilterVideo": from_guard(MessageWithVideo.guard),
     "InputMessagesFilterPhotoVideo": from_guard(
         compose_guards_or(MessageWithCompressedPhoto.guard, MessageWithVideo.guard)
-    )(),
-    "InputMessagesFilterDocument": from_guard(MessageWithDocument.guard)(),
-    "InputMessagesFilterGif": from_guard(MessageWithAnimated.guard)(),
-    "InputMessagesFilterVoice": from_guard(MessageWithVoice.guard)(),
-    "InputMessagesFilterMusic": from_guard(MessageWithMusic.guard)(),
+    ),
+    "InputMessagesFilterDocument": from_guard(MessageWithDocument.guard),
+    "InputMessagesFilterGif": from_guard(MessageWithAnimated.guard),
+    "InputMessagesFilterVoice": from_guard(MessageWithVoice.guard),
+    "InputMessagesFilterMusic": from_guard(MessageWithMusic.guard),
     "InputMessagesFilterRoundVoice": from_guard(
         compose_guards_or(MessageWithKruzhochek.guard, MessageWithVoice.guard)
-    )(),
-    "InputMessagesFilterRoundVideo": from_guard(MessageWithKruzhochek.guard)(),
+    ),
+    "InputMessagesFilterRoundVideo": from_guard(MessageWithKruzhochek.guard),
 }

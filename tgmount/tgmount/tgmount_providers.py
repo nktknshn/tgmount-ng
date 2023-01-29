@@ -11,7 +11,7 @@ from tgmount.tgmount.producers.producer_zip import VfsProducerZip
 from tgmount.tgmount.vfs_tree_producer_types import VfsTreeProducerProto
 from tgmount.tgmount.wrappers.wrapper_exclude_empty_dirs import WrapperEmpty
 from .filters import (
-    telegram_filter_filter,
+    telegram_filters_to_filter_type,
     All,
     And,
     ByExtension,
@@ -57,7 +57,7 @@ class ProducersProvider(ProducersProviderBase):
 
 
 class FilterProvider(FilterProviderBase):
-    telegram_filters = telegram_filter_filter
+    telegram_filters = telegram_filters_to_filter_type
     filters = {
         "OnlyUniqueDocs": OnlyUniqueDocs,
         # "ByTypes": ByTypes,
@@ -70,6 +70,7 @@ class FilterProvider(FilterProviderBase):
         "Seq": Seq,
         "And": And,
         "ByReaction": ByReaction,
+        **telegram_filters_to_filter_type
     }
 
     filter_getters = [

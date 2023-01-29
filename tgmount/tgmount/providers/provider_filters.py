@@ -1,5 +1,6 @@
 from abc import abstractmethod
 from typing import Mapping, Optional, Protocol, Type, Callable
+from tgmount.common.filter import FilterAllMessagesProto
 
 from tgmount.config import ConfigError
 from tgmount.tgclient.message_source import MessageSourceFilter
@@ -18,7 +19,7 @@ FilterGetter = Callable[[str], Type[FilterFromConfigProto]]
 
 class FilterProviderProto(Protocol):
 
-    telegram_filters: Mapping[str, Type[MessageSourceFilter[MessageProto]]]
+    telegram_filters: Mapping[str, Type[FilterAllMessagesProto[MessageProto]]]
 
     @abstractmethod
     def get(self, filter_name: str) -> Type[FilterFromConfigProto] | None:
@@ -31,7 +32,7 @@ class FilterProviderBase(FilterProviderProto):
     filters: Mapping[str, Type[Filter]]
     filter_getters: list[FilterGetter]
 
-    telegram_filters: Mapping[str, MessageSourceFilter[MessageProto]]
+    telegram_filters: Mapping[str,Type[ MessageSourceFilter[MessageProto]]]
 
     def __init__(
         self,
@@ -43,10 +44,10 @@ class FilterProviderBase(FilterProviderProto):
         self.filter_getters.append(fgetter)
 
     def get(self, key) -> Optional[Type[FilterFromConfigProto]]:
-        _filter = self.filters.get(key)
+        _filter = self.filters.get(key) 
 
         if _filter is not None:
-            return _filter
+            return _filter # type: ignore
 
         if len(self.filter_getters) == 0:
             return

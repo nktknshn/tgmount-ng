@@ -57,8 +57,6 @@ root:
           - MessageWithMusic
           - ByReaction: 
               reaction: 👍
-    texts:
-      filter: MessageWithText
-      # this commands tgmount to treat file with both document and text
-      # as text messages
-      treat_as: MessageWithText
+    images:
+      filter: 
+        Union: [MessageWithCompressedPhoto, MessageWithDocumentImage]

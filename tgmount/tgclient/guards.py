@@ -136,11 +136,12 @@ class MessageWithoutDocument(
     Protocol,
 ):
     document: None
+    photo: None
     file: None
 
     @staticmethod
     def guard(msg: Any) -> TypeGuard["MessageWithoutDocument"]:
-        return TelegramMessage.guard(msg) and msg.document is None
+        return TelegramMessage.guard(msg) and msg.document is None and msg.photo is None
 
 
 class FileWithName(FileProto, Protocol):
@@ -215,6 +216,29 @@ class MessageWithDocumentImage(
     @staticmethod
     def filename(msg: "MessageWithDocumentImage"):
         return f"{msg.id}_{msg.file.name}"
+
+
+# class MessageWithImage(
+#     MessageDownloadable,
+#     TryGetFromGuard["MessageWithImage"],
+#     Protocol,
+# ):
+#     """MessageWithDocumentImage or MessageWithCompressedPhoto"""
+
+#     file: FileProto
+#     document: DocumentProto | None
+#     photo: PhotoProto | None
+
+#     @staticmethod
+#     def guard(msg: Any) -> TypeGuard["MessageWithImage"]:
+#         return (
+#             TelegramMessage.guard(msg)
+#             and (MessageWithDocumentImage.guard(msg) or MessageWithCompressedPhoto.guard(msg))
+#         )
+
+#     @staticmethod
+#     def filename(msg: "MessageWithImage"):
+#         return f"{msg.id}_{msg.file.name}"
 
 
 class MessageWithZip(

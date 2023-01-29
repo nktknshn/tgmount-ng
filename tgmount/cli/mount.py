@@ -1,16 +1,11 @@
-import asyncio
-import os
 from argparse import ArgumentParser, Namespace
-from dataclasses import replace
 from typing import Optional
 
 import yaml
 
 from tgmount import config
-from tgmount.config import Config, ConfigValidator
+from tgmount.config import ConfigValidator
 from tgmount.config.types import parse_datetime
-from tgmount.controlserver import ControlServer
-from tgmount.tgclient.client import TgmountTelegramClient
 from tgmount.tgclient.fetcher import TelegramMessagesFetcher
 from tgmount.tgmount.tgmount_builder import TgmountBuilder
 from tgmount.tgmount.error import TgmountError
@@ -29,13 +24,18 @@ def add_mount_arguments(command_mount: ArgumentParser):
         dest="filter",
         choices=list(TelegramMessagesFetcher.FILTERS.keys()),
     )
-    command_mount.add_argument("--root-config", type=str, dest="root_config")
 
-    command_mount.add_argument(
+    config_arg = command_mount.add_mutually_exclusive_group()
+    
+    config_arg.add_argument("--root-config", type=str, dest="root_config")
+
+    config_arg.add_argument(
         "--producer",
         type=str,
         dest="producer",
         choices=list(ProducersProvider.producers.keys()),
+
+        
     )
 
     command_mount.add_argument("--offset-date", type=parse_datetime, dest="offset_date")

@@ -16,7 +16,7 @@ from tgmount.tgmount.providers.provider_vfs_wrappers import ProviderVfsWrappersB
 from tgmount.tgmount.root_config_reader import TgmountConfigReader
 from tgmount.tgmount.vfs_tree import VfsTree
 from tgmount.tgmount.vfs_tree_producer import VfsTreeProducer
-from tgmount.util import none_fallback, yes
+from tgmount.util import get_bytes_count, none_fallback, yes
 
 from .file_factory import classifier, FileFactoryDefault
 from .providers.provider_caches import CachesTypesProviderProto
@@ -66,7 +66,7 @@ class TgmountBuilderBase(abc.ABC):
     async def create_file_source(self, cfg: config.Config, client):
         return self.FilesSource(
             client,
-            request_size=none_fallback(cfg.client.request_size, BLOCK_SIZE),
+            request_size=get_bytes_count(none_fallback(cfg.client.request_size, BLOCK_SIZE)),
         )
 
     async def create_file_factory(self, cfg: config.Config, client, files_source):
@@ -76,9 +76,7 @@ class TgmountBuilderBase(abc.ABC):
         self.cached_filefactory_factory = self.CacheFactory(
             client,
             self.caches,
-            files_source_request_size=none_fallback(
-                cfg.client.request_size, BLOCK_SIZE
-            ),
+            files_source_request_size=get_bytes_count(none_fallback(cfg.client.request_size, BLOCK_SIZE)),
         )
         return self.cached_filefactory_factory
 
@@ -124,7 +122,7 @@ class TgmountBuilderBase(abc.ABC):
                 tg_filter = self.filters.telegram_filters.get(msc.filter)
 
                 if yes(tg_filter):
-                    message_source.add_filter(tg_filter)
+                    message_source.add_filter(tg_filter())
 
             fetcher = await self.create_fetcher(cfg, client, msc, message_source)
 

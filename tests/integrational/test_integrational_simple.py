@@ -15,10 +15,31 @@ async def test_fails_empty_root(
     caplog, ctx: TgmountIntegrationContext, source1: StorageEntity
 ):
     async def test():
-        pass
+        assert await ctx.listdir_set("/") == set()
 
-    with pytest.raises(tgmount.config.ConfigError):
-        await ctx.run_test(test, {})
+    # with pytest.raises(tgmount.config.ConfigError):
+    await ctx.run_test(test, {})
+
+@pytest.mark.asyncio
+async def test_fails_empty_folders(
+    caplog, ctx: TgmountIntegrationContext, source1: StorageEntity
+):
+    async def test():
+        assert await ctx.listdir_set("/") == set({'folder1', 'folder2'})
+        assert await ctx.listdir_set("/folder1") == set({'folder2'})
+        assert await ctx.listdir_set("/folder1/folder2") == set({'folder3', 'folder4'})
+        assert await ctx.listdir_set("/folder2") == set({})
+
+    # with pytest.raises(tgmount.config.ConfigError):
+    await ctx.run_test(test, {
+        'folder1': {
+            'folder2': {
+                'folder3': {},
+                'folder4': {}
+            }
+        },
+        'folder2': {}
+    })
 
 
 @pytest.mark.asyncio

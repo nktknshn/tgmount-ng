@@ -83,7 +83,7 @@ class Client:
     session: str
     api_id: int
     api_hash: str
-    request_size: int | None = None
+    request_size: int | str | None = None
 
     @staticmethod
     def from_mapping(d: dict) -> "Client":

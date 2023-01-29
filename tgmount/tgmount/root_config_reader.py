@@ -207,9 +207,10 @@ class TgmountConfigReader(RootProducerPropsReader):
         elif yes(producer_prop):
             pass
         elif len(other_keys) == 0:
-            raise config.ConfigError(
-                f"Missing source, subfolders or filter in {ctx.current_path}"
-            )
+            pass
+            # raise config.ConfigError(
+            #     f"Missing source, subfolders or filter in {ctx.current_path}"
+            # )
 
         if yes(filters_prop) and filters_prop["recursive"] and filters_from_prop:
             self.logger.info(
