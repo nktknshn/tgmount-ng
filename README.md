@@ -30,12 +30,12 @@ To mount a channel/chat/group
 ```
 cli.py mount tgmounttestingchannel ~/mnt/tgmount1/
 ```
-
+<!-- 
 Don't fetch text messages
 
 ```
 cli.py mount tgmounttestingchannel ~/mnt/tgmount1/ --filter InputMessagesFilterDocument
-```
+``` -->
 
 To mount an entity that doesn't have a username you will need to get its id. 
 ```bash
@@ -78,7 +78,6 @@ message_sources:
 
   ru2chmu:
     entity: ru2chmu
-    filter: InputMessagesFilterDocument
     updates: False
     limit: 1000
 
@@ -283,7 +282,7 @@ message_sources:
 
     # Filter for message types. If not set all the messages types including text 
     # messages will be fetched
-    filter: InputMessagesFilterDocument
+    filter: MessageWithMusic
 
     # limits the number of messages
     limit: 1000
@@ -302,7 +301,7 @@ message_sources:
 
 ### caches
 
-Defines cache storages for documents. Cached parts of a document will not be fetched twice. Usually this is not needed because OS file system caching by itself. Cache is needed in couple with `UnpackedZip` producer since the OS file system cache is not applied in case of using this producer.
+Defines cache storages for documents. Cached parts of a document will not be fetched twice. Usually this is not needed because OS file system does caching by itself. Cache is needed in couple with `UnpackedZip` producer since the OS file system cache is not applied in case of using this producer.
 
 ```yaml
 caches:
@@ -367,7 +366,7 @@ root:
   # referencing a cache defined in `caches` folder 
   cache: memory1
 
-  # dynamicaly creates a cache to use in this folder
+  # dynamically creates a cache to use in this folder
   cache: 
     type: memory
     capacity: 300MB
@@ -399,7 +398,7 @@ Producer is subscribed to a message source and takes a care of the directory it 
 
 The content of a folder is defined by a combination of properties `source`, `filter`, `producer` and `treat_as`. 
 
-This will defined a tree of empty folders
+This will create a tree of empty folders
 ```yaml
 root:
   everything:
@@ -458,7 +457,7 @@ root:
       source: source1
       filter: MessageWithVoice
 ```
-as soon as the only source used in the structure is `source1` we can get rid of repeating it by using `recursive` property of the source.
+as soon as the only source used in the structure is "source1" we can get rid of repeating it by using `recursive` property of the source.
 
 ```yaml
 root:
@@ -479,10 +478,10 @@ root:
 
 Note that
 1. The root itself will not contain any files because source with recursive flag doesn't trigger file producing
-2. We had to specify `filter` in `everything` to trigger file producer. For the same effect we could have specified a producer instead.
+2. We had to specify `filter` in "everything" to trigger file producer. For the same effect we could have specified a producer instead.
 ```yaml
 everything:
-  # triggers producing from the recusrive filter
+  # triggers producing from the recursive filter
   producer: PlainDir
 ```  
 
@@ -515,7 +514,7 @@ MessageWithSticker # sticker
 MessageWithOtherDocument # Any document
 MessageWithZip # zip file
 MessageWithText # message with text message
-MessageWithoutDocument # message witn no document and no photo
+MessageWithoutDocument # message with no document and no photo
 MessageWithReactions # message with reactions
 MessageForwarded # forwarded message
 
@@ -523,7 +522,7 @@ MessageForwarded # forwarded message
 InputMessagesFilterPhotos     # MessageWithCompressedPhoto
 InputMessagesFilterVideo      # MessageWithVideo
 InputMessagesFilterPhotoVideo # MessageWithCompressedPhoto | MessageWithVideo
-InputMessagesFilterDocument   # MessageWithDocument
+InputMessagesFilterDocument   # MessageWithOtherDocument | MessageWithDocumentImage
 InputMessagesFilterGif        # MessageWithAnimated
 InputMessagesFilterVoice      # MessageWithVoice
 InputMessagesFilterMusic      # MessageWithMusic
@@ -534,7 +533,7 @@ InputMessagesFilterRoundVoice # MessageWithKruzhochek | MessageWithVoice
 Other filters
 
 ```yaml
-# Filter wrapper to negatiate filter. 
+# Filter wrapper to reverse a filter. 
 Not: MessageWithReactions
 
 # Combines multiple filters. If any matches
@@ -542,7 +541,7 @@ Union:
   - MessageWithDocumentImage
   - MessageWithCompressedPhoto
 
-# Combines multiple filters. If all matches
+# Combines multiple filters. If every matches
 And:
   - MessageForwarded
   - MessageWithVideo
@@ -558,21 +557,21 @@ First:
 Last:
   count: 10
 
-# Filter by filename extension
+# Filter by a filename extension
 ByExtension: .zip
 
 # will only leave unique docs
 OnlyUniqueDocs:
-  # optional. Control which document first appeared or last appeared will stay.
+  # optional. Control which document, first appeared or last appeared, will stay.
   # default: first
   picker: last 
   picker: first 
 
-# passby filter. Used to command tgmount to producer content in the folder
+# passthrough filter. Used to trigger tgmount to produce content in the folder
 # or to reset recursive filter
 All
 
-# sequentially filters messages. Last 10 unique documents 
+# sequentially filters messages. E.g. last 10 unique documents 
 Seq:
   - MessageWithDocument
   - OnlyUniqueDocs

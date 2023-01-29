@@ -324,7 +324,10 @@ telegram_filters_to_filter_type: Mapping[str, Type[Filter]] = {
     "InputMessagesFilterPhotoVideo": from_guard(
         compose_guards_or(MessageWithCompressedPhoto.guard, MessageWithVideo.guard)
     ),
-    "InputMessagesFilterDocument": from_guard(MessageWithDocument.guard),
+    # "InputMessagesFilterDocument": from_guard(MessageWithDocument.guard),
+    "InputMessagesFilterDocument": from_guard(
+        compose_guards_or(MessageWithOtherDocument.guard, MessageWithDocumentImage.guard)
+    ),
     "InputMessagesFilterGif": from_guard(MessageWithAnimated.guard),
     "InputMessagesFilterVoice": from_guard(MessageWithVoice.guard),
     "InputMessagesFilterMusic": from_guard(MessageWithMusic.guard),

@@ -1,6 +1,5 @@
 import pytest
 
-import tgmount
 from tests.helpers.asyncio import read_bytes
 from tests.helpers.mocked.mocked_storage import StorageEntity
 from tests.integrational.helpers import mdict

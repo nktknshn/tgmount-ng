@@ -35,7 +35,7 @@ by-forward:
 music-by-performer:
   filter: MessageWithMusic
   producer: ByPerformer
-forwareded-video:
+forwarded-video:
   filter:
     And: [MessageForwarded, MessageWithVideo]
 by-reactions: 

@@ -9,7 +9,6 @@ message_sources:
   
   ru2chmu:
     entity: ru2chmu
-    filter: InputMessagesFilterDocument
     updates: False
     limit: 1000
 
