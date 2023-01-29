@@ -1,6 +1,9 @@
 # Overview
 
+
 New version of tgmount
+
+**VERY ALPHA SO FAR**
 
 
 ## Requirements
@@ -30,12 +33,6 @@ To mount a channel/chat/group
 ```
 cli.py mount tgmounttestingchannel ~/mnt/tgmount1/
 ```
-<!-- 
-Don't fetch text messages
-
-```
-cli.py mount tgmounttestingchannel ~/mnt/tgmount1/ --filter InputMessagesFilterDocument
-``` -->
 
 To mount an entity that doesn't have a username you will need to get its id. 
 ```bash
@@ -146,7 +143,7 @@ More about config structure read in [Config file structure]()
 
 
 ```
-cli.py mount --filter FILTER [--filter FILTER] [--root-config ROOT_CONFIG]
+cli.py mount [--filter FILTER] [--root-config ROOT_CONFIG]
 [--producer PRODUCER] [--offset-date OFFSET_DATE] [--offset-id OFFSET_ID] 
 [--max-id MAX_ID] [--min-id MIN_ID] [--wait_time WAIT_TIME] [--limit LIMIT] 
 [--reply-to REPLY_TO] [--from-user FROM_USER] [--reverse] [--no-updates] 
@@ -190,11 +187,11 @@ The following arguments work as described in [TelegramClient.get_messages]((http
 
 Available [telegram filters](https://core.telegram.org/type/MessagesFilter):
 
-```
+```python
+InputMessagesFilterDocument
 InputMessagesFilterPhotos
 InputMessagesFilterVideo
 InputMessagesFilterPhotoVideo
-InputMessagesFilterDocument
 InputMessagesFilterUrl
 InputMessagesFilterGif
 InputMessagesFilterVoice
@@ -203,6 +200,8 @@ InputMessagesFilterRoundVoice
 InputMessagesFilterRoundVideo
 InputMessagesFilterMyMentions
 ```
+
+Using these filter speeds up fetching process but these filter cannot be composed.
 
 If you don't need updates 
 ```
@@ -481,7 +480,7 @@ Note that
 2. We had to specify `filter` in "everything" to trigger file producer. For the same effect we could have specified a producer instead.
 ```yaml
 everything:
-  # triggers producing from the recursive filter
+  # triggers producing from the recursive source
   producer: PlainDir
 ```  
 
@@ -499,7 +498,7 @@ By message type:
 ```python
 MessageWithDocument # Message with a document attached (message with compressed
 #  image doesn't match) 
-MessageWithCompressedPhoto # with a compressed image
+MessageWithCompressedPhoto # with a compressed image (photo)
 MessageDownloadable # `MessageWithDocument` or `MessageWithCompressedPhoto`
 MessageWithAnimated # stickers, gifs
 MessageWithAudio # voices and music

@@ -158,6 +158,9 @@ class TgmountConfigReader(RootProducerPropsReader):
                 raise config.ConfigError(
                     f"Missing message source {source_prop['source_name']} used at {ctx.current_path}"
                 )
+            
+            if yes(producer_prop):
+                producer_name, producer_arg = producer_prop
 
         elif (
             ctx.recursive_source is not None

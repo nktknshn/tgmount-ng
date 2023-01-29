@@ -6,10 +6,18 @@ client:
   api_hash: deadbeed121212121
 
 message_sources:
-  
-  ru2chmu:
+  # separate requests for music
+  ru2chmu-music:
     entity: ru2chmu
     updates: False
+    filter: InputMessagesFilterMusic
+    limit: 1000
+
+  # and for documents
+  ru2chmu-documents:
+    entity: ru2chmu
+    updates: False
+    filter: InputMessagesFilterDocument
     limit: 1000
 
   friends:
@@ -23,22 +31,20 @@ caches:
     block_size: 128KB
 
 root:
- 
+  filter: { filter: OnlyUniqueDocs, recursive: True }
   muzach:
-    source: {source: ru2chmu, recursive: True}
     music:
-      filter: 
-        # the directory will contain music and zip archives
-        Union: [MessageWithMusic, MessageWithZip]
-      # zip archives will be mounted as folders
+      source: ru2chmu-music
+      # the directory will contain music
+      filter: MessageWithMusic
+    zips:
+      source: ru2chmu-documents
+      # will select zip files
+      filter: MessageWithZip
+      
       producer: UnpackedZip
       # using cache speeds up reading from the archives
       cache: memory1
-    texts:
-      filter: MessageWithText
-      # this commands tgmount to treat messages with both document and text
-      # as text files
-      treat_as: MessageWithText
 
   friends:
     source: {source: friends, recursive: True}
