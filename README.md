@@ -168,8 +168,7 @@ ByPerformer # music grouped by performers
 ByReactions # files grouped by reaction
 ```
 
-The following arguments work as described in [TelegramClient.get_messages]((https://docs.telethon.dev/en/stable/modules/client.html#telethon.client.messages.MessageMethods.get_messages)
-). 
+The following arguments work as described in [TelegramClient.get_messages](https://docs.telethon.dev/en/stable/modules/client.html#telethon.client.messages.MessageMethods.get_messages). 
 
 ```
 --filter [FILTER]
@@ -217,7 +216,7 @@ Other arguments
 ### tgmount mount-config
 
 ```
-cli.py mount-config [--mount-dir] CONFIG_FILE MOUNT_DIR
+cli.py mount-config [--mount-dir MOUNT_DIR] CONFIG_FILE MOUNT_DIR
 ```
 
 
@@ -263,8 +262,7 @@ client:
 ```
 
 ### message_sources
-A message source defines a list of messages that will be used in vfs tree construction. Every message source is a separate [TelegramClient.get_messages]((https://docs.telethon.dev/en/stable/modules/client.html#telethon.client.messages.MessageMethods.get_messages)
-) request. Message source is also subscribed to events of posting, removing and editing messages in the entity it is sourced from. 
+A message source defines a list of messages that will be used in vfs tree construction. Every message source is a separate [TelegramClient.get_messages](https://docs.telethon.dev/en/stable/modules/client.html#telethon.client.messages.MessageMethods.get_messages) request. Message source is also subscribed to events of posting, removing and editing messages in the entity it is sourced from. 
 
 ```yaml
 message_sources:
@@ -456,7 +454,7 @@ root:
       source: source1
       filter: MessageWithVoice
 ```
-as soon as the only source used in the structure is "source1" we can get rid of repeating it by using `recursive` property of the source.
+As soon as the only source used in the structure is "source1" we can get rid of repeating it by using `recursive` property of `source`.
 
 ```yaml
 root:
@@ -476,7 +474,7 @@ root:
 ```
 
 Note that
-1. The root itself will not contain any files because source with recursive flag doesn't trigger file producing
+1. The root itself will not contain any files because source with `recursive` flag doesn't trigger file producing
 2. We had to specify `filter` in "everything" to trigger file producer. For the same effect we could have specified a producer instead.
 ```yaml
 everything:
@@ -486,12 +484,12 @@ everything:
 
 The complete rules:
 
-A dir will be produced with content from messages source in cases when:
+A folder will be produced with content from a message source in cases when:
 1. source is specified and it's not recursive
-2. recursive source is in the context and a filters property specified and it's not recursive
-3. recursive source is in the context and producer prop is specified
+2. recursive source is in the context and `filter` property specified and it's not recursive
+3. recursive source is in the context and `producer` prop is specified
 
-#### filters
+#### filter
 
 By message type:
 
@@ -510,7 +508,7 @@ MessageWithMusic # music
 MessageWithVideo # round video, video documents, stickers, gifs
 MessageWithVideoFile # video documents
 MessageWithSticker # sticker
-MessageWithOtherDocument # Any document
+MessageWithOtherDocument # Any document that doesn't fall in the previous categories
 MessageWithZip # zip file
 MessageWithText # message with text message
 MessageWithoutDocument # message with no document and no photo

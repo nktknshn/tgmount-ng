@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Any, Optional, Protocol
 
 import telethon
+from tgmount.tgclient.guards import MessageDownloadable
 
 from tgmount.util import yes
 
@@ -134,9 +135,9 @@ class MessageProto(Protocol):
     async def get_sender() -> SenderProto:
         ...
 
-    @staticmethod
-    def guard(msg: Any):
-        return hasattr(msg, "id") and hasattr(msg, "document")
+    # @staticmethod
+    # def guard(msg: Any):
+        # return hasattr(msg, "id") and MessageDownloadable.guard(msg)
 
     @staticmethod
     def repr_short(message: "MessageProto"):

@@ -5,6 +5,7 @@ from typing import Any, TypeVar
 from telethon.errors import FileReferenceExpiredError
 from tgmount import tgclient, vfs
 from tgmount.tgclient.message_types import MessageProto, PhotoProto
+from tgmount.tgmount.error import TgmountError
 from tgmount.util import none_fallback
 
 from .guards import MessageDownloadable, MessageWithCompressedPhoto
@@ -105,10 +106,10 @@ class TelegramFilesSource:
             message.chat_id, ids=[message.id]
         )
 
-        if MessageProto.guard(message):
+        if not MessageDownloadable.guard(message):
             logger.error(f"refetched_msg isnt a Message")
             logger.error(f"refetched_msg={refetched_msg}")
-            raise ValueError(f"refetched_msg isnt a Message")
+            raise TgmountError(f"refetched_msg isnt a Message")
             # XXX what should i do if refetched_msg is None
 
         # XXX handle photo

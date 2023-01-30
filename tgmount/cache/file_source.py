@@ -1,6 +1,5 @@
 import logging
 
-import telethon
 
 from tgmount.tgclient import TelegramFilesSource, TgmountTelegramClient
 from tgmount.tgclient import guards
