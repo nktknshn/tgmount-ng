@@ -90,7 +90,11 @@ class CacheFileFactoryFactory(CacheFileFactoryFactoryProto):
         assert cache_id not in self._caches
 
         fsc = self.FilesSource(
-            self._client, cache=cache, request_size=self._files_source_request_size
+            self._client,
+            cache=cache,
+            request_size=cache_kwargs.get(
+                "block_size", self._files_source_request_size
+            ),
         )
         fc = self.FileFactory(fsc)
 

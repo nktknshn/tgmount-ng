@@ -475,7 +475,7 @@ class FileSystemOperations(pyfuse3.Operations, FileSystemOperationsMixin):
         handle = None
 
         if flags & os.O_RDWR or flags & os.O_WRONLY:
-            self.logger.error("readonly")
+            self.logger.error("open(): readonly")
             raise pyfuse3.FUSEError(errno.EPERM)
 
         item = self._inodes.get_item_by_inode(inode)

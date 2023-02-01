@@ -29,6 +29,9 @@ def get_parser():
     parser.add_argument("--tgapp", type=str, required=False)
 
     parser.add_argument("--debug", default=False, action="store_true")
+    parser.add_argument(
+        "--debug-fs-ops", default=False, action="store_true", dest="debug_fs_ops"
+    )
 
     commands_subparsers = parser.add_subparsers(dest="command")
 
@@ -57,7 +60,10 @@ async def main(loop):
 
     args = get_parser().parse_args()
 
-    init_logging(debug_level=logging.DEBUG if args.debug else logging.INFO)
+    init_logging(
+        debug_level=logging.DEBUG if args.debug else logging.INFO,
+        debug_fs_ops=args.debug_fs_ops,
+    )
 
     if args.command == "list" and args.list_subcommand == "dialogs":
         session, api_id, api_hash = get_tgapp_and_session(args)

@@ -26,6 +26,10 @@ class FileContentZip(FileContentProto):
         self._total_read = 0
 
     @property
+    def total_read(self):
+        return self._total_read
+
+    @property
     def size(self):
         return self.zinfo.file_size
 

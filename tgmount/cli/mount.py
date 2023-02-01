@@ -76,6 +76,7 @@ async def mount(
     root_content = {
         "source": {"source": args.entity, "recursive": True},
         "filter": "All",
+        ".sysinfo": {"producer": "SysInfo", "source": args.entity},
     }
 
     if yes(args.root_config, str):
@@ -105,7 +106,7 @@ async def mount(
             root_content["cache"] = {
                 "type": "memory",
                 "capacity": "300MB",
-                "block_size": "128KB",
+                "block_size": "256KB",
             }
 
     logger.debug(f"{root_content}")

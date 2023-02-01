@@ -1,11 +1,12 @@
 import asyncio
 import logging
 import tgmount
+
 # from tgmount.tgmount.root_config_reader import TgmountConfigReader
 from tgmount.util import yes
 
 
-def init_logging(debug_level: int = 0):
+def init_logging(debug_level: int = 0, debug_fs_ops=False):
 
     logging.getLogger("asyncio").setLevel(logging.CRITICAL)
     logging.getLogger("telethon").setLevel(logging.ERROR)
@@ -24,7 +25,10 @@ def init_logging(debug_level: int = 0):
         logging.INFO
     )
 
-    tgmount.fs.logger.setLevel(logging.INFO)
+    if debug_fs_ops:
+        tgmount.fs.logger.setLevel(logging.DEBUG)
+    else:
+        tgmount.fs.logger.setLevel(logging.INFO)
 
     tgmount.tgmount.wrappers.wrapper_exclude_empty_dirs.WrapperEmpty.logger.setLevel(
         logging.INFO
@@ -75,7 +79,7 @@ class TgmountLogger(logging.Logger):
         suffix_as_tag=False,
     ) -> "TgmountLogger":
         """`suffix_as_tag` suffix will be used a a tag"""
-        child = super().getChild(suffix)
+        child = super().getChild(suffix.replace(".", "[dot]"))
         child.suffix_as_tag = suffix_as_tag
         return child
 

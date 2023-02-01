@@ -85,7 +85,7 @@ class CachesReader(PropertyReader):
         typ = self.string("type")
         capacity = self.getter("capacity", get_bytes_count)
         block_size = self.getter(
-            "block_size", get_bytes_count, default=128 * 1024, optional=True
+            "block_size", get_bytes_count, default=256 * 1024, optional=True
         )
 
         return config.Cache(
