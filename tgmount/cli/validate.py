@@ -41,6 +41,10 @@ async def validate(args: Namespace):
     except ConfigError as e:
         logger.error(f"Error parsing config: {str(e)}")
         return 1
-
+    try:
+        await validator.verify_config(cfg)
+    except ConfigError as e:
+        logger.error(f"Error validating config: {str(e)}")
+        return 1
     pprint("OK")
     logger.debug(cfg)
