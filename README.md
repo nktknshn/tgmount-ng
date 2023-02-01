@@ -345,6 +345,9 @@ root:
     - Not:
       - ByExtension: .zip
 
+  # on line
+  filter: {filter: [MessageWithOtherDocument, Not: {ByExtension: .zip}], overwright: True, recursive: True}
+
   # defines a producer that controls the content of the folder. 
   # Default is PlainDir
   producer: BySender

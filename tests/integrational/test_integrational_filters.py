@@ -1,6 +1,6 @@
 import pytest
 from tests.helpers.mocked.mocked_storage import StorageEntity
-from tests.integrational.integrational_configs import create_config
+from tests.helpers.config import create_config
 from .fixtures import *
 
 

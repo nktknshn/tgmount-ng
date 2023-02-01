@@ -2,7 +2,7 @@ import logging
 import aiofiles
 
 import pytest
-from tests.integrational.integrational_configs import create_config
+from tests.helpers.config import create_config
 import tgmount
 from tests.helpers.mocked.mocked_storage import StorageEntity
 from tests.integrational.helpers import mdict
@@ -118,21 +118,21 @@ async def test_recursive_filter_4(
     files: FixtureFiles,
 ):
     # caplog.set_level(logging.DEBUG)
-
+    root_mapping = {
+        "source1": {
+            "source": {"source": "source1", "recursive": True},
+            "filter": {
+                "filter": ["MessageWithDocument", "OnlyUniqueDocs"],
+                "recursive": True,
+            },
+            "all": {"filter": "All"},
+            "all2": {"producer": "PlainDir"},
+        },
+    }
     """OnlyUniqueDocs works"""
     config = create_config(
         message_sources={"source1": "source1", "source2": "source2"},
-        root={
-            "source1": {
-                "source": {"source": "source1", "recursive": True},
-                "filter": {
-                    "filter": ["MessageWithDocument", "OnlyUniqueDocs"],
-                    "recursive": True,
-                },
-                "all": {"filter": "All"},
-                "all2": {"producer": "PlainDir"},
-            },
-        },
+        root=root_mapping,
     )
 
     msg0 = await source1.document(text="Hummingbird", file=files.Hummingbird)
@@ -164,11 +164,9 @@ async def test_recursive_filter_4(
 
     await ctx.run_test(
         test2,
-        config.set_root(
-            mdict(config.root.content)
-            .update({"filter": ["OnlyUniqueDocs"]}, at="/source1/filter")
-            .get()
-        ),
+        mdict(root_mapping)
+        .update({"filter": ["OnlyUniqueDocs"]}, at="/source1/filter")
+        .get(),
     )
 
 

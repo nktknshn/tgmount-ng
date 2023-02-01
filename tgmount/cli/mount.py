@@ -4,11 +4,11 @@ from typing import Optional
 import yaml
 
 from tgmount import config
-from tgmount.config import ConfigValidator
+from tgmount.tgmount.validator import ConfigValidator
 from tgmount.config.types import parse_datetime
 from tgmount.tgclient.fetcher import TelegramMessagesFetcher
 from tgmount.tgmount.tgmount_builder import TgmountBuilder
-from tgmount.tgmount.error import TgmountError
+from tgmount.error import TgmountError
 from tgmount.tgmount.tgmount_providers import ProducersProvider
 from tgmount.util import int_or_string, yes
 from .logger import logger
@@ -26,7 +26,7 @@ def add_mount_arguments(command_mount: ArgumentParser):
     )
 
     config_arg = command_mount.add_mutually_exclusive_group()
-    
+
     config_arg.add_argument("--root-config", type=str, dest="root_config")
 
     config_arg.add_argument(
@@ -34,8 +34,6 @@ def add_mount_arguments(command_mount: ArgumentParser):
         type=str,
         dest="producer",
         choices=list(ProducersProvider.producers.keys()),
-
-        
     )
 
     command_mount.add_argument("--offset-date", type=parse_datetime, dest="offset_date")
@@ -70,8 +68,8 @@ async def mount(
     api_credentials: Optional[tuple[int, str]] = None,
     session: Optional[str] = None,
 ):
-    validator = ConfigValidator()
     builder = TgmountBuilder()
+    validator = ConfigValidator(builder)
 
     producer = None
     root_content = {
@@ -102,11 +100,11 @@ async def mount(
     if yes(producer):
         root_content["producer"] = args.producer
 
-        if args.producer == 'UnpackedZip':
-            root_content['cache'] = {
-                'type': 'memory',
-                'capacity': '300MB',
-                'block_size': '128KB'
+        if args.producer == "UnpackedZip":
+            root_content["cache"] = {
+                "type": "memory",
+                "capacity": "300MB",
+                "block_size": "128KB",
             }
 
     logger.debug(f"{root_content}")

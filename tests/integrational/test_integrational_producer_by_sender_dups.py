@@ -3,7 +3,9 @@ import logging
 import pytest
 
 from tests.integrational.helpers import concurrently
-from tests.integrational.integrational_configs import ORGRANIZED2, create_config
+from tests.helpers.config import create_config
+from .integrational_configs import ORGANIZED2
+
 from tgmount.util.timer import Timer
 from tgmount.fs import FileSystemOperations
 from .fixtures import *
@@ -33,7 +35,7 @@ async def test_producer_by_sender_update_dups(
     config = create_config(
         message_sources={"source1": "source1", "source2": "source2"},
         root={
-            "source1": ORGRANIZED2,
+            "source1": ORGANIZED2,
         },
     )
 

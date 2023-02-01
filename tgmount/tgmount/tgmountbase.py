@@ -3,7 +3,7 @@ from typing import Mapping, Optional, Type
 
 from telethon import events
 
-from tgmount import fs, main, tgclient, tglog, vfs
+from tgmount import fs, main, tgclient, tglog, vfs, config
 from tgmount.fs.update import FileSystemOperationsUpdate
 from tgmount.tgclient.events_disptacher import EntityId, TelegramEventsDispatcher
 from tgmount.tgclient.message_reaction_event import MessageReactionEvent
@@ -12,7 +12,7 @@ from tgmount.tgmount.vfs_tree_producer import VfsTree, VfsTreeProducer
 from tgmount.util import measure_time, none_fallback
 from tgmount.vfs.util import MyLock
 
-from .error import TgmountError
+from tgmount.error import TgmountError
 from .logger import module_logger as _logger
 from .tgmount_types import TgmountResources
 from .vfs_tree import TreeListener, VfsTreeDir
@@ -44,7 +44,7 @@ class TgmountBase:
         *,
         client: tgclient.client_types.TgmountTelegramClientReaderProto,
         resources: TgmountResources,
-        root_config: Mapping,
+        root_config: config.DirConfig,
         mount_dir: Optional[str] = None,
     ) -> None:
         self._client = client

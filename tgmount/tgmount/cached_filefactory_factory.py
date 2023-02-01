@@ -3,7 +3,7 @@ from typing import Generic, Mapping, Protocol, Type, TypeVar
 from tgmount.cache.file_source import FilesSourceCached
 from tgmount.cache.types import CacheInBlocksProto
 from tgmount.tgclient.client_types import TgmountTelegramClientReaderProto
-from tgmount.tgmount.error import TgmountError
+from tgmount.error import TgmountError
 from tgmount.tgmount.file_factory.filefactory import FileFactoryDefault
 
 from tgmount.tgmount.file_factory.types import FileFactoryProto

@@ -5,7 +5,7 @@ import pytest_asyncio
 
 import tgmount
 from tests.integrational.context import Context
-from tests.integrational.integrational_configs import create_config
+from tests.helpers.config import create_config
 from tgmount.tgclient.guards import MessageWithVideo
 from tgmount.util.timer import Timer
 

@@ -1,17 +1,38 @@
 import typing
-from collections.abc import Callable, Mapping
-from dataclasses import fields
-from typing import Optional, Type, TypeGuard, TypeVar, Union
+from typing import Any, Callable, Mapping
+from dataclasses import fields, MISSING
+from typing import Optional, Type, TypeGuard, TypeVar, Union, overload
+from tgmount.config.error import (
+    ConfigPropertyError,
+    ConfigError,
+    MissingKeyError,
+    TypecheckError,
+)
+from tgmount.config.util import get_type_name
 
-from tgmount.util import col
+from tgmount.util import col, none_fallback
 from .logger import logger
 
 T = TypeVar("T")
 
 
-def assert_that(pred, e):
-    if not pred:
-        raise e
+@overload
+def assert_that(condition: TypeGuard[T], error: Exception) -> TypeGuard[T]:
+    ...
+
+
+@overload
+def assert_that(condition: bool, error: Exception) -> bool:
+    ...
+
+
+def assert_that(
+    condition: bool | TypeGuard[T], error: Exception
+) -> TypeGuard[T] | bool:
+    if not condition:
+        raise error
+
+    return True
 
 
 def assert_not_none(pred: Optional[T], e) -> TypeGuard[T]:
@@ -24,6 +45,7 @@ def _typecheck_union(
     value,
     typ,
 ):
+
     type_args = typing.get_args(typ)
 
     if type(value) is list:
@@ -67,12 +89,14 @@ def dict_get_value(
     return dv
 
 
-def type_check(value, typ: Type[T], e) -> T:
+def type_check(value: Any, typ: Type[T], error: Exception) -> T:
+    if typ == Mapping:
+        if isinstance(value, Mapping):
+            return value
+        raise error
+    # print(value, typ)
     type_origin = typing.get_origin(typ)
     type_args = typing.get_args(typ)
-
-    # if value is None:
-    #     raise e
 
     if type_origin is Optional:
         if value is None:
@@ -84,56 +108,84 @@ def type_check(value, typ: Type[T], e) -> T:
         typechekd = typ is type(value)
 
     if not typechekd:
-        raise e
+        raise error
 
     return value
 
 
-class ConfigError(Exception):
-    pass
+Loader = Callable[[Mapping], T]
 
 
-Loader = Callable[[dict], T]
+class ConfigDataclassError(ConfigError):
+    def __init__(
+        self, typ: Type, kwargs: Mapping, error: Exception, message: str | None = None
+    ) -> None:
+        super().__init__(
+            none_fallback(message, f"Error constructing type {typ}. kwargs: {kwargs}")
+        )
+        self.typ = typ
+        self.kwargs = kwargs
+        self.error = error
 
 
 def load_class_from_mapping(
     cls,
-    d: Mapping,
+    mapping: Mapping,
     *,
-    loaders: Optional[dict[str, Loader]] = None,
+    loaders: Optional[Mapping[str, Loader]] = None,
+    ignore_unexpected_key=False,
 ):
-    logger.debug(f"load_class_from_dict({cls}, {d}, {loaders})")
+    logger.debug(f"load_class_from_dict({cls}, {mapping}, {loaders})")
 
     loaders = loaders if loaders is not None else {}
 
     assert_that(
-        isinstance(d, Mapping),
-        ConfigError(f"{d} is not dictionary"),
+        isinstance(mapping, Mapping),
+        ConfigError(f"{mapping} is not a mapping"),
     )
 
-    input_d = {}
+    dataclass_kwargs = {}
+
+    other_keys = set(mapping.keys()).difference(set(f.name for f in fields(cls)))
+
+    if len(other_keys) > 0 and not ignore_unexpected_key:
+        raise ConfigError(f"Unexpected keys: {other_keys}")
 
     for field in fields(cls):
         if (loader := loaders.get(field.name)) is not None:
-            input_d[field.name] = loader(d)
-            continue
+            try:
+                dataclass_kwargs[field.name] = loader(mapping)
+                continue
+            except Exception as e:
+                raise ConfigPropertyError(field.name, e)
 
-        value = d.get(field.name, field.default)
+        value = mapping.get(field.name, field.default)
+
+        if value is MISSING:
+            raise ConfigPropertyError(
+                field.name,
+                MissingKeyError(field.name),
+                f"Missing required property `{field.name}: {get_type_name(field.type)}`",
+            )
 
         type_check(
             value,
             field.type,
-            ConfigError(
-                f"Mismatching type for {field.name}. Expected: {field.type} received {type(value)}"
+            ConfigPropertyError(
+                field.name,
+                TypecheckError(
+                    expected_type=field.type,
+                    actual_type=type(value),
+                ),
             ),
         )
 
-        input_d[field.name] = value
+        dataclass_kwargs[field.name] = value
 
     try:
-        return cls(**input_d)
+        return cls(**dataclass_kwargs)
     except TypeError as e:
-        raise ConfigError(f"Error loading {cls}: {e}")
+        raise ConfigDataclassError(cls, dataclass_kwargs, e)
 
 
 def load_mapping(cls: Type | Callable, d: Mapping):
@@ -152,22 +204,22 @@ def load_mapping(cls: Type | Callable, d: Mapping):
 T = TypeVar("T")
 R = TypeVar("R")
 
-Tree = T | Mapping[str, "Tree[T]"]
+# Tree = T | Mapping[str, "Tree[T]"]
 
 
-def fold_tree(
-    f: Callable[[T, R], R],
-    tree: Tree[T],
-    initial: R,
-) -> R:
-    res = initial
-    if isinstance(tree, Mapping):
-        for k, v in tree.items():
-            if isinstance(v, Mapping):
-                res = fold_tree(f, v, res)
-            else:
-                res = f(v, res)
-    else:
-        return f(tree, res)
+# def fold_tree(
+#     f: Callable[[T, R], R],
+#     tree: Tree[T],
+#     initial: R,
+# ) -> R:
+#     res = initial
+#     if isinstance(tree, Mapping):
+#         for k, v in tree.items():
+#             if isinstance(v, Mapping):
+#                 res = fold_tree(f, v, res)
+#             else:
+#                 res = f(v, res)
+#     else:
+#         return f(tree, res)
 
-    return res
+#     return res

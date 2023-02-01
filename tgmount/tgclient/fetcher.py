@@ -4,7 +4,7 @@ from typing import Protocol
 from tgmount import config
 from tgmount.tgclient.message_types import MessageProto
 from tgmount.tgclient.types import TotalListTyped
-from tgmount.tgmount.error import TgmountError
+from tgmount.error import TgmountError
 from tgmount.util import yes
 
 from .client_types import TgmountTelegramClientGetMessagesProto

@@ -32,6 +32,10 @@ def yes(value: Optional[T], typ: Optional[Type[O]] = None) -> TypeGuard[O | T]:
         raise ValueError(f"'{value}' is not '{typ}'")
 
 
+def no(value: Optional[T]) -> TypeGuard[None]:
+    return value is None
+
+
 def none_fallback(value: Optional[T], default: T) -> T:
     return value if value is not None else default
 
@@ -97,17 +101,18 @@ def measure_time(*, logger_func, threshold=None):
 random_int = lambda max: lambda: int(max * random.random())
 
 
-def get_bytes_count(block_size: int | str) -> int:
-    if isinstance(block_size, int):
-        return block_size
-
-    if block_size.endswith("KB"):
-        return int(block_size[:-2]) * 1024
-
-    if block_size.endswith("MB"):
-        return int(block_size[:-2]) * 1024 * 1024
-
+def get_bytes_count(value: int | str) -> int:
+    if isinstance(value, int):
+        return value
     try:
-        return int(block_size)
+        if value.endswith("KB"):
+            return int(value[:-2]) * 1024
+
+        if value.endswith("MB"):
+            return int(value[:-2]) * 1024 * 1024
+
+        return int(value)
     except ValueError:
-        raise ValueError(f"invalid block_size: {block_size}")
+        raise ValueError(
+            f"Invalid value: {value}. Expected number of bytes or value in format like 128KB or 1MB."
+        )

@@ -66,7 +66,9 @@ class TgmountBuilderBase(abc.ABC):
     async def create_file_source(self, cfg: config.Config, client):
         return self.FilesSource(
             client,
-            request_size=get_bytes_count(none_fallback(cfg.client.request_size, BLOCK_SIZE)),
+            request_size=get_bytes_count(
+                none_fallback(cfg.client.request_size, BLOCK_SIZE)
+            ),
         )
 
     async def create_file_factory(self, cfg: config.Config, client, files_source):
@@ -76,7 +78,9 @@ class TgmountBuilderBase(abc.ABC):
         self.cached_filefactory_factory = self.CacheFactory(
             client,
             self.caches,
-            files_source_request_size=get_bytes_count(none_fallback(cfg.client.request_size, BLOCK_SIZE)),
+            files_source_request_size=get_bytes_count(
+                none_fallback(cfg.client.request_size, BLOCK_SIZE)
+            ),
         )
         return self.cached_filefactory_factory
 
@@ -99,9 +103,7 @@ class TgmountBuilderBase(abc.ABC):
 
     async def create_tgmount_resources(self, client, cfg: config.Config, **kwargs):
 
-        sources_used_in_root = await TgmountConfigReader().get_used_sources(
-            cfg.root.content
-        )
+        sources_used_in_root = await TgmountConfigReader().get_used_sources(cfg.root)
 
         files_source = await self.create_file_source(cfg, client)
         file_factory = await self.create_file_factory(cfg, client, files_source)
@@ -148,7 +150,7 @@ class TgmountBuilderBase(abc.ABC):
             fetchers_dict=fetchers_dict,
             caches=cached_filefactory_factory,
             file_factory=file_factory,
-            filters=self.filters,
+            filters_provider=self.filters,
             producers=self.producers,
             classifier=self.classifier,
             vfs_wrappers=self.wrappers,
@@ -167,7 +169,7 @@ class TgmountBuilderBase(abc.ABC):
         self.tgm = tgm = self.TgmountBase(
             client=self.client,
             resources=self.resources,
-            root_config=cfg.root.content,
+            root_config=cfg.root,
             mount_dir=cfg.mount_dir,
         )
 

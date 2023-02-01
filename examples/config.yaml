@@ -64,13 +64,10 @@ ogranized: &ogranized
     producer: ByReactions      
   likes: 
     filter: 
-      - ByReaction: 
-          reaction: 👍
+      - ByReaction: { reaction: 👍 }
   top-likes: 
     filter: 
-      - ByReaction: 
-          reaction: 👍
-          minimum: 5
+      - ByReaction: { reaction: 👍, minimum: 5 }
   unpacked:
     filter: MessageWithZip
     cache: memory1

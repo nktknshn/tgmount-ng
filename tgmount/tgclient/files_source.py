@@ -1,11 +1,13 @@
 import logging
 from typing import Any, TypeVar
 
+from random import random
+
 # import telethon
 from telethon.errors import FileReferenceExpiredError
 from tgmount import tgclient, vfs
 from tgmount.tgclient.message_types import MessageProto, PhotoProto
-from tgmount.tgmount.error import TgmountError
+from tgmount.error import TgmountError
 from tgmount.util import none_fallback
 
 from .guards import MessageDownloadable, MessageWithCompressedPhoto
@@ -28,6 +30,10 @@ T = TypeVar("T")
 # XXX telethon.utils.is_video
 # XXX telethon.utils.is_audio
 # XXX telethon.utils.is_gif
+
+
+class FilesSourceError(TgmountError):
+    pass
 
 
 def item_to_inner_object(input_item: InputSourceItem) -> FileSourceItem:
@@ -107,17 +113,12 @@ class TelegramFilesSource:
         )
 
         if not MessageDownloadable.guard(message):
-            logger.error(f"refetched_msg isnt a Message")
+            logger.error(f"refetched_msg isnt a MessageDownloadable")
             logger.error(f"refetched_msg={refetched_msg}")
-            raise TgmountError(f"refetched_msg isnt a Message")
+            raise FilesSourceError(f"refetched_msg isnt a MessageDownloadable")
             # XXX what should i do if refetched_msg is None
 
-        # XXX handle photo
-        if refetched_msg.document is None:
-            # if refetched_msg.document is None:
-            raise ValueError(f"missing document")
-
-        self._set_item_file_reference(item, refetched_msg.document.file_reference)
+        self._set_item_file_reference(item, refetched_msg.document.file_reference)  # type: ignore
 
         return await self._get_item_input_location(item)
 
@@ -137,15 +138,6 @@ class TelegramFilesSource:
 
         # if random() > 0.9:
         #     raise FileReferenceExpiredError(None)
-
-        # request_size = (
-        #     request_size
-        #     if (offset + request_size) <= document_size
-        #     else document_size - offset
-        # )
-
-        # if offset + request_size > document_size:
-        #     offset = document_size - 0
 
         async for chunk in self.client.iter_download(
             input_location,
@@ -183,7 +175,7 @@ class TelegramFilesSource:
                 request_size=self.request_size,
             )
         except FileReferenceExpiredError:
-            logger.debug(
+            logger.warning(
                 f"FileReferenceExpiredError was caught. file_reference for msg={item.id} needs refetching"
             )
 

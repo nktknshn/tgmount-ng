@@ -7,7 +7,7 @@ from tgmount.tgclient import MessageSourceProto
 from tgmount.tgclient.message_types import MessageProto
 from tgmount.tgmount.file_factory import FileFactoryProto
 from tgmount.tgmount.filters_types import Filter
-
+from tgmount import config
 from tgmount.tgmount.vfs_tree_wrapper_types import VfsTreeWrapperProto
 
 
@@ -75,7 +75,7 @@ class VfsTreeProducerConfig:
 class VfsDirConfig:
     """Contains information for creating a `VfsProducer`"""
 
-    dir_config: Mapping
+    dir_config: config.DirConfig
     """ Config this structure was sourced from """
 
     vfs_producer: Type["VfsTreeProducerProto"] | None

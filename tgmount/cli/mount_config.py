@@ -6,10 +6,12 @@ from typing import Optional
 
 import yaml
 
-from tgmount.config import Config, ConfigValidator
+from tgmount.config import Config
+from tgmount.config.config import ConfigParser
 from tgmount.controlserver import ControlServer
 from tgmount.tgmount.tgmount_builder import TgmountBuilder
-from tgmount.tgmount.error import TgmountError
+from tgmount.error import TgmountError
+from tgmount.tgmount.validator import ConfigValidator
 from .logger import logger
 
 
@@ -35,8 +37,8 @@ async def mount_config(
     run_server=False,
     min_tasks=10,
 ):
-    validator = ConfigValidator()
     builder = TgmountBuilder()
+    validator = ConfigValidator(builder)
 
     if not os.path.exists(config_file):
         raise TgmountError(f"Missing config file: {config_file}")
@@ -47,9 +49,9 @@ async def mount_config(
     except Exception as e:
         raise TgmountError(f"Error load config file:\n\n{e}")
 
-    cfg = Config.from_mapping(cfg_dict)
+    cfg = ConfigParser().parse_config(cfg_dict)
 
-    validator.verify_config(cfg)
+    await validator.verify_config(cfg)
 
     if session is not None:
         cfg.client = replace(cfg.client, session=session)

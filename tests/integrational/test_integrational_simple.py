@@ -1,10 +1,12 @@
+import logging
 import pytest
 
 from tests.helpers.asyncio import read_bytes
 from tests.helpers.mocked.mocked_storage import StorageEntity
 from tests.integrational.helpers import mdict
-from tests.integrational.integrational_configs import create_config
+from tests.helpers.config import create_config
 from tests.integrational.integrational_test import TgmountIntegrationContext
+from tgmount.tgmount.root_config_reader import TgmountConfigReader
 
 from .fixtures import *
 
@@ -19,31 +21,29 @@ async def test_fails_empty_root(
     # with pytest.raises(tgmount.config.ConfigError):
     await ctx.run_test(test, {})
 
+
 @pytest.mark.asyncio
 async def test_fails_empty_folders(
     caplog, ctx: TgmountIntegrationContext, source1: StorageEntity
 ):
     async def test():
-        assert await ctx.listdir_set("/") == set({'folder1', 'folder2'})
-        assert await ctx.listdir_set("/folder1") == set({'folder2'})
-        assert await ctx.listdir_set("/folder1/folder2") == set({'folder3', 'folder4'})
+        assert await ctx.listdir_set("/") == set({"folder1", "folder2"})
+        assert await ctx.listdir_set("/folder1") == set({"folder2"})
+        assert await ctx.listdir_set("/folder1/folder2") == set({"folder3", "folder4"})
         assert await ctx.listdir_set("/folder2") == set({})
 
     # with pytest.raises(tgmount.config.ConfigError):
-    await ctx.run_test(test, {
-        'folder1': {
-            'folder2': {
-                'folder3': {},
-                'folder4': {}
-            }
-        },
-        'folder2': {}
-    })
+    await ctx.run_test(
+        test, {"folder1": {"folder2": {"folder3": {}, "folder4": {}}}, "folder2": {}}
+    )
+
+
+# TgmountConfigReader.logger.setLevel(logging.DEBUG)
 
 
 @pytest.mark.asyncio
-async def test_simple1(caplog, ctx, source1: StorageEntity):
-
+async def test_simple1(caplog, ctx: TgmountIntegrationContext, source1: StorageEntity):
+    # ctx.debug = logging.DEBUG
     await source1.message(text="hello1")
     await source1.message(text="hello2")
     await source1.message(text="hello3")
@@ -57,7 +57,14 @@ async def test_simple1(caplog, ctx, source1: StorageEntity):
         }
 
     await ctx.run_test(test, {"source1": {"source": "source1"}})
-    await ctx.run_test(test, {"source1": {"source": {"source": "source1"}}})
+    await ctx.run_test(
+        test,
+        {
+            "source1": {
+                "source": {"source": "source1"},
+            }
+        },
+    )
 
 
 @pytest.mark.asyncio
@@ -70,9 +77,6 @@ async def test_recursive_source_empty(caplog, ctx, source1: StorageEntity):
         assert await ctx.listdir_set("/source1") == set()
 
     await ctx.run_test(test, root)
-
-
-# tgmount.tglog.getLogger("TgmountConfigReader()").setLevel(logging.DEBUG)
 
 
 @pytest.mark.asyncio

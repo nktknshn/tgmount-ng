@@ -1,3 +1,4 @@
 from .types import *
-from .validator import *
-from .validatorbase import *
+from .error import ConfigError
+
+# from .validatorbase import *

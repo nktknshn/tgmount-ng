@@ -1,4 +1,4 @@
-from tgmount import vfs
+from tgmount import vfs, config
 from tgmount.util import none_fallback, yes
 from tgmount.util.timer import Timer
 
@@ -26,7 +26,7 @@ class VfsTreeProducer:
     async def produce(
         self,
         tree_dir: VfsTreeDir | VfsTree,
-        dir_config: TgmountRootType,
+        dir_config: config.DirConfig,
         ctx=None,
     ):
         """Produce content into `tree_dir` using `dir_config`"""

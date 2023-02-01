@@ -1,8 +1,10 @@
 import abc
 import os
 from typing import Iterable, Mapping, TypeVar
+from tgmount.config.config import ConfigParser
 
-from tests.helpers.spawn import P
+
+from tgmount.config.config_type import ConfigParserProto
 from tgmount.tgclient.message_source import MessageSource
 from tgmount.tgclient.message_types import MessageProto
 from tgmount.tgclient.messages_collection import messages_difference
@@ -33,6 +35,7 @@ class VfsTreeProducerGrouperBase(abc.ABC):
     DEFAULT_ROOT_CONFIG: Mapping = {"filter": "All"}
     VfsTreeProducer = VfsTreeProducer
     MessageSource = MessageSource[MessageProto]
+    config_reader: ConfigParserProto = ConfigParser()
 
     def __init__(
         self,
@@ -44,7 +47,7 @@ class VfsTreeProducerGrouperBase(abc.ABC):
     ) -> None:
         self._dir = tree_dir
         self._config = config
-        self._dir_structure = dir_structure
+        self._dir_structure: Mapping = dir_structure
         self._resources = resources
 
         self._source_by_name: dict[str, VfsTreeProducerGrouperBase.MessageSource] = {}
@@ -52,6 +55,8 @@ class VfsTreeProducerGrouperBase(abc.ABC):
         self._source_root = self.MessageSource(tag=os.path.join(self._dir.path))
 
         self._logger = self.logger.getChild(f"{self._dir.path}", suffix_as_tag=True)
+
+        self._dir_config = self.config_reader.parse_root(dir_structure)
 
     @classmethod
     def sanitize(cls, dirname: str):
@@ -81,7 +86,7 @@ class VfsTreeProducerGrouperBase(abc.ABC):
 
         await self.VfsTreeProducer(self._resources).produce(
             tree_dir,
-            self._dir_structure,
+            self._dir_config,
             ctx=RootConfigWalkingContext.from_resources(
                 self._resources, recursive_source=dir_source
             ),

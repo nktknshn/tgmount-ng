@@ -1,3 +1,3 @@
-import logging
+from tgmount import tglog
 
-logger = logging.getLogger("tgmount-config")
+logger = tglog.tgmount_logger.getChild("config")

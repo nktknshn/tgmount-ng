@@ -5,25 +5,25 @@ from os import stat_result
 from typing import Any, AsyncGenerator, Iterable, Mapping
 
 import aiofiles
-from tests.integrational.integrational_configs import create_config
 
 import tgmount.config as config
 from tests.helpers.mocked.mocked_storage import EntityId, MockedTelegramStorage
 from tests.helpers.mount import handle_mount
+from tests.helpers.config import create_config
 from tgmount import tglog, vfs
-from tgmount.config.types import Config
+from tgmount.config.config import ConfigParser
+from tgmount.config.config_type import ConfigRootParserProto
+from tgmount.config.types import Config, DirConfig
 from tgmount.main.util import mount_ops
 from tgmount.tgclient.guards import MessageWithText
-from tgmount.tgmount import TgmountBase, VfsTreeProducer
-from tgmount.tgmount.file_factory.filefactory import FileFactoryDefault
 from tgmount.tgmount.tgmount_builder import MyFileFactoryDefault, TgmountBuilder
+from tgmount.tgmount.tgmountbase import TgmountBase, VfsTreeProducer
 from tgmount.util import none_fallback
 
 from ..helpers.fixtures_common import mnt_dir
 from ..helpers.mocked.mocked_client import MockedClientReader, MockedClientWriter
-from .helpers import async_listdir, async_walkdir
-
 from ..logger import logger as _logger
+from .helpers import async_listdir, async_walkdir
 
 
 class MockedVfsTreeProducer(VfsTreeProducer):
@@ -138,11 +138,21 @@ class TgmountIntegrationContext:
     MockedTelegramStorage = MockedTelegramStorage
     MockedClientWriter = MockedClientWriter
 
-    def __init__(self, mnt_dir: str, *, caplog=None, default_config=None) -> None:
+    def __init__(
+        self,
+        mnt_dir: str,
+        *,
+        caplog=None,
+        default_config=None,
+        config_parser: ConfigRootParserProto = ConfigParser(),
+    ) -> None:
         self._mnt_dir = mnt_dir
         self._caplog = caplog
 
-        self._default_config = none_fallback(default_config, create_config())
+        self._default_config = none_fallback(
+            default_config, create_config(config_reader=config_parser)
+        )
+        self.config_parser = config_parser
         self._storage = self.create_storage()
         self._client = self.create_client()
         self._debug = False
@@ -183,7 +193,7 @@ class TgmountIntegrationContext:
     def set_config(self, config: Config):
         self._default_config = config
 
-    def create_config(self, root: Mapping):
+    def create_config(self, root: DirConfig):
         return self._default_config.set_root(root)
 
     def create_storage(self):
@@ -244,7 +254,7 @@ class TgmountIntegrationContext:
     def get_root(self, root_cfg: Mapping) -> Mapping:
         return root_cfg
 
-    def mount_task_root(self, root: Mapping, debug=True):
+    def mount_task_root(self, root: DirConfig, debug=True):
         return self.mount_task(self.create_config(root), debug=debug)
 
     def mount_task(self, cfg: config.Config, debug=True):
@@ -260,11 +270,17 @@ class TgmountIntegrationContext:
     async def run_test(
         self,
         test_func: Callable[[], Awaitable[Any]],
-        cfg_or_root: config.Config | Mapping | None = None,
+        # config_reader: ConfigRootParserProto,
+        cfg_or_root: config.Config | DirConfig | Mapping | None = None,
         debug=None,
     ):
         _debug = self.debug
         self.debug = none_fallback(debug, self.debug)
+
+        if isinstance(cfg_or_root, Mapping):
+            cfg_or_root = self.config_parser.parse_root(cfg_or_root)
+
+        # print(cfg_or_root.other_keys["source1"])
 
         await _run_test(
             handle_mount(self.mnt_dir)(test_func),
@@ -278,9 +294,12 @@ class TgmountIntegrationContext:
 
     def _get_config(
         self,
-        cfg_or_root: config.Config | Mapping | None = None,
+        cfg_or_root: config.Config | DirConfig | Mapping | None = None,
     ):
         cfg_or_root = none_fallback(cfg_or_root, self._default_config)
+
+        if isinstance(cfg_or_root, Mapping):
+            cfg_or_root = self.config_parser.parse_root(cfg_or_root)
 
         return (
             cfg_or_root
@@ -290,7 +309,7 @@ class TgmountIntegrationContext:
 
     async def create_tgmount(
         self,
-        cfg_or_root: config.Config | Mapping | None = None,
+        cfg_or_root: config.Config | DirConfig | None = None,
     ) -> TgmountBase:
 
         builder = MockedTgmountBuilderBase(storage=self.storage)

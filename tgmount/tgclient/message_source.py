@@ -17,7 +17,7 @@ class MessageSource(MessageSourceProto, Generic[M]):
 
     Generic storage for a set of messages. It's a proxy between telegram client and its users. It gets updated with methods and can be subscribed for new and for removed messages.
 
-    The only constraint on message type is that it has to be hashable.
+    The only constraint on message type is that it has to have 'id: int' attribute.
 
     Returns the stored messages set via `get_messages()` method.
 

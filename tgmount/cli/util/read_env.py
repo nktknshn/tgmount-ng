@@ -2,7 +2,7 @@ import argparse
 import os
 from typing import Optional, TypedDict
 
-from tgmount.tgmount.error import TgmountError
+from tgmount.error import TgmountError
 
 ReadosEnv = TypedDict(
     "_read_os_env",

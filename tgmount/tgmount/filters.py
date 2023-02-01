@@ -4,7 +4,7 @@ from typing import Any, Iterable, Mapping, Optional, Protocol, Type, TypeVar, Ca
 from tgmount.tgclient.guards import *
 
 
-from tgmount.tgmount.error import TgmountError
+from tgmount.error import TgmountError
 
 
 from .logger import module_logger as _logger
@@ -19,12 +19,11 @@ from tgmount.util.guards import compose_guards_or, compose_try_gets
 from .filters_types import (
     FilterConfigValue,
     FilterContext,
-    InstanceFromConfigProto,
     FilterFromConfigProto,
     FilterAllMessagesProto,
     FilterSingleMessage,
     Filter,
-    ParseFilter,
+    FilterParser,
 )
 
 T = TypeVar("T")
@@ -39,7 +38,7 @@ def from_function(
     class FilterFromConfig(FilterFromConfigProto):
         @staticmethod
         def from_config(
-            d: Any, ctx: FilterContext, parse_filter: ParseFilter
+            d: Any, ctx: FilterContext, parse_filter: FilterParser
         ) -> Optional[Filter]:
             return func(d, ctx, parse_filter)
 
@@ -55,7 +54,7 @@ class ByReaction(FilterAllMessagesProto):
     def from_config(
         props: Mapping,
         ctx: FilterContext,
-        parse_filter: ParseFilter,
+        parse_filter: FilterParser,
     ):
         reaction = props.get("reaction")
 
@@ -98,7 +97,7 @@ class ByTypes(FilterAllMessagesProto):
         self._filter_types = filter_types
 
     @staticmethod
-    def from_config(gs: list[str], ctx: FilterContext, parse_filter: ParseFilter):
+    def from_config(gs: list[str], ctx: FilterContext, parse_filter: FilterParser):
         return ByTypes(
             filter_types=[ctx.file_factory.try_get_dict[g] for g in gs],
         )
@@ -118,7 +117,7 @@ class OnlyUniqueDocs(FilterAllMessagesProto):
     }
 
     @staticmethod
-    def from_config(d: Optional[dict], ctx: FilterContext, parse_filter: ParseFilter):
+    def from_config(d: Optional[dict], ctx: FilterContext, parse_filter: FilterParser):
         if d is not None:
             return OnlyUniqueDocs(picker=OnlyUniqueDocs.PICKERS[d["picker"]])
         else:
@@ -155,7 +154,7 @@ class ByExtension(FilterAllMessagesProto[MessageProto]):
         self.ext = ext
 
     @staticmethod
-    def from_config(ext: str, ctx: FilterContext, parse_filter: ParseFilter):
+    def from_config(ext: str, ctx: FilterContext, parse_filter: FilterParser):
         return ByExtension(ext)
 
     async def filter(self, messages: Iterable[MessageProto]) -> list[MessageProto]:
@@ -166,7 +165,7 @@ class ByExtension(FilterAllMessagesProto[MessageProto]):
             if m.file.ext == self.ext
         ]
         self.logger.debug(f"result={res}")
-        
+
         return res
 
 
@@ -178,7 +177,7 @@ class Not(FilterAllMessagesProto):
     def from_config(
         _filter: FilterConfigValue,
         ctx: FilterContext,
-        parse_filter: ParseFilter,
+        parse_filter: FilterParser,
     ):
         return Not(parse_filter(_filter))
 
@@ -197,7 +196,7 @@ class Union(FilterAllMessagesProto):
 
     @staticmethod
     def from_config(
-        gs: FilterConfigValue, ctx: FilterContext, parse_filter: ParseFilter
+        gs: FilterConfigValue, ctx: FilterContext, parse_filter: FilterParser
     ):
         return Union(filters=parse_filter(gs))
 
@@ -215,7 +214,7 @@ class And(FilterAllMessagesProto):
 
     @staticmethod
     def from_config(
-        gs: FilterConfigValue, ctx: FilterContext, parse_filter: ParseFilter
+        gs: FilterConfigValue, ctx: FilterContext, parse_filter: FilterParser
     ):
         return And(filters=parse_filter(gs))
 
@@ -239,7 +238,7 @@ class Seq(FilterAllMessagesProto):
 
     @staticmethod
     def from_config(
-        gs: FilterConfigValue, ctx: FilterContext, parse_filter: ParseFilter
+        gs: FilterConfigValue, ctx: FilterContext, parse_filter: FilterParser
     ):
         return Seq(filters=parse_filter(gs))
 
@@ -256,7 +255,7 @@ class All(FilterAllMessagesProto):
         pass
 
     @staticmethod
-    def from_config(d: dict, ctx: FilterContext, parse_filter: ParseFilter):
+    def from_config(d: dict, ctx: FilterContext, parse_filter: FilterParser):
         return All()
 
     async def filter(self, messages: Iterable[MessageProto]) -> list[MessageProto]:
@@ -268,7 +267,7 @@ class Last(FilterAllMessagesProto):
         self._count = count
 
     @staticmethod
-    def from_config(arg: int, ctx: FilterContext, parse_filter: ParseFilter):
+    def from_config(arg: int, ctx: FilterContext, parse_filter: FilterParser):
         return Last(count=arg)
 
     async def filter(self, messages: Iterable[MessageProto]) -> list[MessageProto]:
@@ -280,12 +279,11 @@ class First(FilterAllMessagesProto):
         self._count = count
 
     @staticmethod
-    def from_config(arg: int, ctx: FilterContext, parse_filter: ParseFilter):
+    def from_config(arg: int, ctx: FilterContext, parse_filter: FilterParser):
         return Last(count=arg)
 
     async def filter(self, messages: Iterable[MessageProto]) -> list[MessageProto]:
         return list(messages)[: self._count]
-
 
 
 def from_guard(g: Callable[[Any], bool]) -> Type[Filter]:
@@ -297,17 +295,27 @@ def from_guard(g: Callable[[Any], bool]) -> Type[Filter]:
             return list(filter(lambda m: g(m), messages))
 
         @staticmethod
-        def from_config(gs, ctx: FilterContext, parse_filter: ParseFilter):
+        def from_config(arg, ctx: FilterContext, parse_filter: FilterParser):
             return FromGuardFunc()
 
     return FromGuardFunc
 
 
 def from_context_classifier(klass_name: str) -> Type[FilterFromConfigProto]:
-    """If `classifier` supports message of `filter_name` type returns filter for that type, otherwise returns `None`"""
+    """If `classifier` supports message of `filter_name` type returns filter for that type, otherwise returns `None`.
+
+    ```python
+    forwarded_filter_class = from_context_classifier('ForwardedMessage')
+
+    # if `filter_ctx.classifier` has a class `ForwardedMessage`.
+    # `forwarded_message_filter` will be a valid filter for this class
+    forwarded_message_filter = forwarded_filter_class.from_config(None, filter_ctx, None)
+    ```
+
+    """
 
     def from_config(
-        d, ctx: FilterContext, parse_filter: ParseFilter
+        d, ctx: FilterContext, parse_filter: FilterParser
     ) -> Optional[Filter]:
 
         func = ctx.classifier.try_get_guard(klass_name)
@@ -326,7 +334,9 @@ telegram_filters_to_filter_type: Mapping[str, Type[Filter]] = {
     ),
     # "InputMessagesFilterDocument": from_guard(MessageWithDocument.guard),
     "InputMessagesFilterDocument": from_guard(
-        compose_guards_or(MessageWithOtherDocument.guard, MessageWithDocumentImage.guard)
+        compose_guards_or(
+            MessageWithOtherDocument.guard, MessageWithDocumentImage.guard
+        )
     ),
     "InputMessagesFilterGif": from_guard(MessageWithAnimated.guard),
     "InputMessagesFilterVoice": from_guard(MessageWithVoice.guard),

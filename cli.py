@@ -10,7 +10,7 @@ from tgmount.cli.util import get_client, get_tgapp_and_session
 # import list_dialogs, list_documents, add_list_documents_arguments
 from tgmount.main.util import run_main
 from tgmount.tglog import init_logging
-from tgmount.tgmount.error import TgmountError
+from tgmount.error import TgmountError
 
 """
 export TGAPP=111111:ac7e6350d04adeadbeedf1af778773d6f0 TGSESSION=tgfs
@@ -48,6 +48,7 @@ def get_parser():
     cli.add_mount_config_arguments(command_mount)
     cli.add_stats_parser(command_stats)
     cli.add_mount_arguments(command_mount_args)
+    cli.add_validate_arguments(command_validate)
 
     return parser
 
@@ -109,6 +110,8 @@ async def main(loop):
         )
     elif args.command == "stats":
         await cli.stats(args)
+    elif args.command == "validate":
+        await cli.validate(args)
 
 
 if __name__ == "__main__":

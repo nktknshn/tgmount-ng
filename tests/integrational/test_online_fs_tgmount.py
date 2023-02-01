@@ -6,7 +6,7 @@ from typing import TypedDict
 import pytest
 
 import tgmount.config as config
-from tests.integrational.integrational_configs import create_config
+from tests.helpers.config import create_config
 from tgmount import tglog
 from tgmount.tgmount.tgmount_builder import TgmountBuilder
 

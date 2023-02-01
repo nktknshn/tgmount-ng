@@ -1,10 +1,12 @@
-from dataclasses import replace
+from dataclasses import dataclass, field, replace
 import datetime
+from typing import Any, Mapping, Optional, Union
 import yaml
+from tgmount import vfs
+from tgmount.config.helpers import load_class_from_mapping
 
-from tgmount.util import get_bytes_count, map_none
+from tgmount.util import get_bytes_count, map_none, col
 
-from .root import *
 import time
 
 
@@ -17,40 +19,43 @@ DATE_FORMATS = [
     "%d/%m/%y",
 ]
 
+FilterConfigValue = str | dict[str, Mapping] | list[str | dict[str, Mapping]]
+FilterInputType = list[tuple[str, Any]]
+
 
 def parse_datetime(s: str):
+    error = ValueError(f"Invalid value: {s}. Date formats are: {DATE_FORMATS}")
+
+    if not isinstance(s, str):
+        raise error
+
     for f in DATE_FORMATS:
         try:
             return datetime.datetime.strptime(s, f)
         except ValueError:
             continue
 
-    raise ConfigError(f"Invalid date: {s}")
+    raise error
 
 
 @dataclass
 class Cache:
     type: str
-    kwargs: dict
+    kwargs: Mapping
 
     @staticmethod
-    def from_mapping(d: dict) -> "Cache":
+    def from_mapping(mapping: Mapping) -> "Cache":
         return load_class_from_mapping(
             Cache,
-            d,
+            mapping,
             loaders={"kwargs": lambda d: col.dict_exclude(d, ["type"])},
+            ignore_unexpected_key=True,
         )
 
 
 @dataclass
 class Caches:
     caches: dict[str, Cache]
-
-    @staticmethod
-    def from_mapping(d: dict) -> "Caches":
-        return Caches(
-            caches=load_mapping(Cache.from_mapping, d),
-        )
 
 
 @dataclass
@@ -64,6 +69,7 @@ class Wrapper:
             Wrapper,
             d,
             loaders={"kwargs": lambda d: col.dict_exclude(d, ["type"])},
+            ignore_unexpected_key=True,
         )
 
 
@@ -71,25 +77,19 @@ class Wrapper:
 class Wrappers:
     wrappers: dict[str, Wrapper]
 
-    @staticmethod
-    def from_mapping(d: dict) -> "Wrappers":
-        return Wrappers(
-            wrappers=load_mapping(Wrapper.from_mapping, d),
-        )
-
 
 @dataclass
 class Client:
     session: str
     api_id: int
     api_hash: str
-    request_size: int | str | None = None
+    request_size: int | None = None
 
     @staticmethod
-    def from_mapping(d: dict) -> "Client":
+    def from_mapping(mapping: Mapping) -> "Client":
         return load_class_from_mapping(
             Client,
-            d,
+            mapping,
             loaders={
                 "request_size": lambda d: map_none(
                     d.get("request_size"), get_bytes_count
@@ -114,14 +114,15 @@ class MessageSource:
     offset_date: Optional[datetime.datetime] = None
 
     @staticmethod
-    def from_mapping(d: Mapping) -> "MessageSource":
+    def from_mapping(mapping: Mapping) -> "MessageSource":
         return load_class_from_mapping(
             MessageSource,
-            d,
+            mapping,
             loaders={
-                "offset_date": lambda d: parse_datetime(d["offset_date"])
-                if "offset_date" in d
-                else None
+                "offset_date": lambda d: map_none(
+                    d.get("offset_date"),
+                    parse_datetime,
+                )
             },
         )
 
@@ -130,53 +131,68 @@ class MessageSource:
 class MessageSources:
     sources: dict[str, MessageSource]
 
+
+@dataclass
+class PropSource:
+    source: str
+    recursive: bool = False
+
+
+@dataclass
+class PropFilter:
+    filter: list[tuple[str, Any | None]]
+    recursive: bool = False
+    overwright: bool = False
+
+
+@dataclass
+class PropProducer:
+    producer: str
+    kwargs: Any = None
+
+
+@dataclass
+class PropWrapper:
+    wrapper: str
+    kwargs: Mapping | None = None
+
     @staticmethod
-    def from_mapping(d: Mapping) -> "MessageSources":
-        return MessageSources(load_mapping(MessageSource, d))
+    def from_mapping(mapping: Mapping):
+        return load_class_from_mapping(
+            PropWrapper,
+            mapping,
+            loaders={"kwargs": lambda d: col.dict_exclude(d, ["type"])},
+            ignore_unexpected_key=True,
+        )
+
+
+@dataclass
+class PropCacheReference:
+    cache: str
+
+
+PropCache = PropCacheReference | Cache
+
+
+@dataclass
+class DirConfig:
+    source: PropSource | None = None
+    filter: PropFilter | None = None
+    producer: PropProducer | None = None
+    wrapper: PropWrapper | None = None
+    cache: PropCache | None = None
+    treat_as: list[str] | None = None
+    other_keys: Mapping[str, "DirConfig"] = field(default_factory=dict)
 
 
 @dataclass
 class Config:
     client: Client
     message_sources: MessageSources
-    root: Root
+    root: DirConfig
     caches: Optional[Caches] = None
     wrappers: Optional[Wrappers] = None
     mount_dir: Optional[str] = None
 
-    def set_root(self, root_cfg: Mapping) -> "Config":
-        return replace(self, root=replace(self.root, content=root_cfg))
-
-    @staticmethod
-    def from_mapping(d: dict):
-        client_dict = d.get("client")
-        message_sources_dict = d.get("message_sources")
-        root_dict = d.get("root")
-        caches_dict = d.get("caches")
-        wrappers_dict = d.get("wrappers")
-
-        if client_dict is None:
-            raise ConfigError("Missing 'client'")
-
-        if message_sources_dict is None:
-            raise ConfigError("Missing 'message_sources'")
-
-        if root_dict is None:
-            raise ConfigError("Missing 'root'")
-
-        return Config(
-            mount_dir=d.get("mount_dir"),
-            client=Client.from_mapping(client_dict),
-            message_sources=MessageSources.from_mapping(message_sources_dict),
-            root=Root.from_dict(root_dict),
-            caches=Caches.from_mapping(caches_dict)
-            if caches_dict is not None
-            else None,
-            wrappers=Wrappers.from_mapping(wrappers_dict)
-            if wrappers_dict is not None
-            else None,
-        )
-
-    @staticmethod
-    def from_yaml(s):
-        return Config.from_mapping(yaml.safe_load(s))
+    def set_root(self, root_cfg: DirConfig) -> "Config":
+        return replace(self, root=root_cfg)

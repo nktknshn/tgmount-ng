@@ -1,31 +1,25 @@
+import os
 from collections import defaultdict
 from collections.abc import Mapping
 from typing import TypedDict
-from tgmount.tgclient.client_types import (
+
+import aiofiles
+from telethon import events, types
+
+from tgmount.tgclient import (
     IterDownloadProto,
     ListenerEditedMessage,
     ListenerNewMessages,
     ListenerRemovedMessages,
 )
-from tgmount.tgclient.message_types import (
-    AudioProto,
-    DocumentProto,
-    MessageProto,
-    VoiceProto,
-)
+from tgmount.tgclient.message_types import DocumentProto
 from tgmount.tgclient.types import (
     InputDocumentFileLocation,
     InputPhotoFileLocation,
     TotalListTyped,
 )
+from tgmount.util import none_fallback, random_int, yes
 
-from tgmount.tgclient.guards import MessageWithDocument
-
-from telethon import events, hints, types
-import aiofiles
-import os
-
-from tgmount.util import map_none, none_fallback, random_int, none_fallback_lazy, yes
 from .mocked_message import (
     MockedDocument,
     MockedFile,
@@ -35,7 +29,6 @@ from .mocked_message import (
     MockedReactions,
     MockedSender,
 )
-
 
 EntityId = str | int
 
@@ -125,6 +118,7 @@ class Files:
 
 
 import telethon
+
 from tgmount import tglog
 
 

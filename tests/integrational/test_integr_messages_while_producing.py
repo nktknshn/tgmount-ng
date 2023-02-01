@@ -3,8 +3,8 @@ import logging
 import pytest
 import pytest_asyncio
 from tests.integrational.helpers import concurrentlys
-from tests.integrational.integrational_configs import ORGRANIZED2, create_config
-
+from tests.helpers.config import create_config
+from .integrational_configs import ORGANIZED2
 from .fixtures import *
 from .context import Context
 
@@ -15,12 +15,13 @@ async def test_message_while_producing(
 ):
     """Tests updates of the tree"""
     ctx = Context.from_fixtures(fixtures)
+    ctx.debug = logging.DEBUG
 
     config = create_config(
         message_sources={"source1": "source1", "source2": "source2"},
         root={
-            "source1": ORGRANIZED2,
-            "source2": ORGRANIZED2,
+            "source1": ORGANIZED2,
+            "source2": ORGANIZED2,
         },
     )
 

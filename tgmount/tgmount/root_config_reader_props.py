@@ -1,7 +1,8 @@
 from typing import TypeVar, Mapping, Optional, Any, TypedDict
 
 from tgmount import config
-from tgmount.config.helpers import type_check
+from tgmount.config.helpers import assert_that
+from tgmount.config.error import ConfigErrorWithPath
 from tgmount.util import col, dict_exclude, yes
 from .filters_types import FilterConfigValue, Filter
 from .root_config_types import RootConfigWalkingContext
@@ -12,12 +13,28 @@ T = TypeVar("T")
 
 from .logger import module_logger
 
-class RootProducerPropsReader:
-    PROPS_KEYS = {"source", "filter", "cache", "wrappers", "producer", "treat_as"}
+
+class RootConfigError(ConfigErrorWithPath):
+    pass
+
+
+class PropertyValidator:
+    def __init__(self, path: list[str]) -> None:
+        self.path = path
+
+
+class _RootConfigReaderProps:
+    DIR_PROPS_KEYS = {"source", "filter", "cache", "wrappers", "producer", "treat_as"}
 
     PropSourceType = TypedDict("PropSource", source_name=str, recursive=bool)
+    PropFilterType = TypedDict(
+        "PropFilter",
+        filters=list[tuple[str, Mapping | None]],
+        recursive=bool,
+        overwright=bool,
+    )
 
-    logger = module_logger.getChild(f'RootProducerPropsReader')
+    logger = module_logger.getChild(f"RootProducerPropsReader")
 
     @classmethod
     def read_prop_source(cls, d: TgmountRootType) -> PropSourceType | None:
@@ -39,13 +56,13 @@ class RootProducerPropsReader:
 
         return cls.PropSourceType(source_name=source_name, recursive=recursive)
 
-    def read_prop_filter(self, d: TgmountRootType) -> Mapping | None:
+    def read_prop_filter(self, d: TgmountRootType) -> PropFilterType | None:
         filter_prop_cfg = d.get("filter")
 
         if filter_prop_cfg is None:
             return
 
-        # filter_prop_cfg: FilterConfigValue = d.get("filter")
+        filter_prop_cfg
 
         filter_recursive = False
         filter_overwright = False
@@ -60,7 +77,7 @@ class RootProducerPropsReader:
 
         filter_prop_cfg = to_list_of_single_key_dicts(filter_prop_cfg)  # type: ignore
 
-        filters = []
+        filters: list[tuple[str, Mapping | None]] = []
 
         for f_item in filter_prop_cfg:
             if isinstance(f_item, str):
@@ -71,7 +88,7 @@ class RootProducerPropsReader:
 
             filters.append((f_name, filter_arg))
 
-        return dict(
+        return self.PropFilterType(
             filters=filters,
             recursive=filter_recursive,
             overwright=filter_overwright,
@@ -195,15 +212,14 @@ class RootProducerPropsReader:
         resources: TgmountResources,
         ctx: RootConfigWalkingContext,
     ) -> list[Filter]:
-
         def _parse_filter(filt: FilterConfigValue) -> list[Filter]:
-            self.logger.info(f'filt={filt}')
-            
+            self.logger.info(f"filt={filt}")
+
             filter_prop = self.read_prop_filter({"filter": filt})
 
             if filter_prop is None:
                 return []
-            
+
             return self.get_filters_from_prop(filter_prop["filters"], resources, ctx)
 
         filters = []
@@ -211,7 +227,7 @@ class RootProducerPropsReader:
         for f_name, f_arg in filter_prop:
             self.logger.info(f"{f_name} {f_arg}")
 
-            filter_cls = resources.filters.get(f_name)
+            filter_cls = resources.filters_provider.get(f_name)
 
             if filter_cls is None:
                 raise config.ConfigError(

@@ -27,7 +27,7 @@ class TgmountResources:
     file_factory: FileFactoryProto
     classifier: ClassifierBase
     message_sources: SourcesProviderProto[MessageSourceProto[MessageProto]]
-    filters: FilterProviderProto
+    filters_provider: FilterProviderProto
     producers: ProducersProviderBase
     caches: CacheFileFactoryFactory
     vfs_wrappers: ProviderVfsWrappersBase

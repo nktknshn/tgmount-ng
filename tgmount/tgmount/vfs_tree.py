@@ -8,7 +8,7 @@ from tgmount.tgclient.message_source_types import (
     SubscribableProto,
 )
 from tgmount.tglog import TgmountLogger
-from tgmount.tgmount.error import TgmountError
+from tgmount.error import TgmountError
 from tgmount.tgmount.vfs_tree_types import (
     TreeEventNewDirs,
     TreeEventNewItems,

@@ -10,10 +10,10 @@ from ..filters_types import (
     FilterContext,
     FilterFromConfigProto,
     Filter,
-    ParseFilter,
+    FilterParser,
 )
 
-"""Taken filter name return `FilterFromConfigProto` class"""
+"""Taking a string, return `FilterFromConfigProto` class"""
 FilterGetter = Callable[[str], Type[FilterFromConfigProto]]
 
 
@@ -32,7 +32,7 @@ class FilterProviderBase(FilterProviderProto):
     filters: Mapping[str, Type[Filter]]
     filter_getters: list[FilterGetter]
 
-    telegram_filters: Mapping[str,Type[ MessageSourceFilter[MessageProto]]]
+    telegram_filters: Mapping[str, Type[MessageSourceFilter[MessageProto]]]
 
     def __init__(
         self,
@@ -44,22 +44,22 @@ class FilterProviderBase(FilterProviderProto):
         self.filter_getters.append(fgetter)
 
     def get(self, key) -> Optional[Type[FilterFromConfigProto]]:
-        _filter = self.filters.get(key) 
+        _filter = self.filters.get(key)
 
         if _filter is not None:
-            return _filter # type: ignore
+            return _filter  # type: ignore
 
         if len(self.filter_getters) == 0:
             return
 
         _fgs: list[Type[FilterFromConfigProto]] = []
 
-        for fg in self.filter_getters:
-            _fgs.append(fg(key))
+        for filter_getter in self.filter_getters:
+            _fgs.append(filter_getter(key))
 
         class _FromConfig(FilterFromConfigProto):
             @staticmethod
-            def from_config(d, ctx: FilterContext, parse_filter: ParseFilter):
+            def from_config(d, ctx: FilterContext, parse_filter: FilterParser):
                 for fg in _fgs:
                     if _f := fg.from_config(d, ctx, parse_filter):
                         return _f

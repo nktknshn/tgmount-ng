@@ -5,7 +5,7 @@ import pytest
 from pprint import pprint
 from tgmount import vfs, zip as z
 from tests.integrational.helpers import mdict
-from tests.integrational.integrational_configs import create_config
+from tests.helpers.config import create_config
 from tgmount.tgmount.vfs_tree_types import (
     TreeEventNewDirs,
     TreeEventNewItems,
