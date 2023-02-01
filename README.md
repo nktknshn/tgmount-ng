@@ -596,6 +596,24 @@ SysInfo
 UnpackedZip
 ```
 
+## Playing flac and mp3 from a zip archive
+1. Seeking in files which are stored in a zip archive only works by reading the offset bytes.  
+2. id3v1 tags are stored in the end of a media file :)
+https://github.com/quodlibet/mutagen/blob/master/mutagen/id3/_id3v1.py#L34
 
+And most of the players try to read it. So just adding a mp3 or flac
+to a player will fetch the whole file from the telegram cloud.
+
+In current moment this is solved by custom read function for mp3 and flac files in archives. The `read` call returns 4096 zero bytes when
+  1. less than `max_total_read = 128KB` bytes has been read from the file so far
+  2. `file_size - offset < distance_to_file_end = 16KB`
+  3. `size == 4096` (usually players read this amount looking for id3v1 (requires further investigation to find a less hacky way))
+
+  See `FileContentZipFixingId3v1` class
+
+To disable this behaviour use `--no-fix-id3v1` argument with `mount` command. In case of mounting a config set `fix_id3v1` property of `UnpackedZip` to False:
+```yaml
+producer: {UnpackedZip: {fix_id3v1: False}}
+```
 ## Known bugs
 - No updates received during reconnection

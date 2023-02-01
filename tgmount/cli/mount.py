@@ -11,7 +11,7 @@ from tgmount.tgclient.fetcher import TelegramMessagesFetcher
 from tgmount.tgmount.tgmount_builder import TgmountBuilder
 from tgmount.error import TgmountError
 from tgmount.tgmount.tgmount_providers import ProducersProvider
-from tgmount.util import int_or_string, yes
+from tgmount.util import int_or_string, map_none, yes
 from .logger import logger
 
 
@@ -54,6 +54,9 @@ def add_mount_arguments(command_mount: ArgumentParser):
     # )
     command_mount.add_argument(
         "--no-updates", default=False, action="store_true", dest="no_updates"
+    )
+    command_mount.add_argument(
+        "--no-fix-id3v1", default=False, action="store_true", dest="no_fix_id3v1"
     )
 
     command_mount.add_argument(
@@ -100,7 +103,9 @@ async def mount(
         raise TgmountError(f"Missing session")
 
     if yes(producer):
-        root_content["producer"] = args.producer
+        root_content["producer"] = {
+            args.producer: {"fix_id3v1": not args.no_fix_id3v1},
+        }
 
         if args.producer == "UnpackedZip":
             root_content["cache"] = {
