@@ -125,8 +125,7 @@ class ConfigRootReader(PropertyReader):
             source_reader = dir_cfg_reader.enter("source")
             source_reader.string("source")
             source_reader.boolean("recursive", optional=True)
-            self.ctx.assert_that(
-                len(source_reader.other_keys()) == 0,
+            source_reader.assert_no_other_keys(
                 f"Unexpected keys in `source` property: {source_reader.other_keys()}",
             )
             source_prop = config.PropSource(**source_reader.get())
@@ -166,8 +165,7 @@ class ConfigRootReader(PropertyReader):
                 filter_reader.boolean("recursive", optional=True, default=False)
                 filter_reader.read_filter_value()
 
-                self.ctx.assert_that(
-                    len(filter_reader.other_keys()) == 0,
+                filter_reader.assert_no_other_keys(
                     f"Unexpected keys in `filter` property: {filter_reader.other_keys()}",
                 )
 

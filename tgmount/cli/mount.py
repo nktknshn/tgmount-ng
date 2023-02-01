@@ -4,6 +4,7 @@ from typing import Optional
 import yaml
 
 from tgmount import config
+from tgmount.config.config import ConfigParser
 from tgmount.tgmount.validator import ConfigValidator
 from tgmount.config.types import parse_datetime
 from tgmount.tgclient.fetcher import TelegramMessagesFetcher
@@ -108,7 +109,7 @@ async def mount(
             }
 
     logger.debug(f"{root_content}")
-
+    config_parser = ConfigParser()
     cfg = config.Config(
         client=config.Client(
             session=session,
@@ -133,10 +134,10 @@ async def mount(
                 )
             }
         ),
-        root=config.Root(root_content),
+        root=config_parser.parse_root(root_content),
     )
 
-    validator.verify_config(cfg)
+    await validator.verify_config(cfg)
 
     tgm = await builder.create_tgmount(cfg)
 

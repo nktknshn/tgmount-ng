@@ -59,7 +59,11 @@ class PropertyReader:
         value = self.get_key(key, optional, default)
         if optional and value is None:
             return
-        self.ctx.assert_type(value, typ)
+        self.ctx.assert_type(
+            value,
+            typ,
+            f"Property `{key}` has invalid value: `{value}`. Expected type {typ}",
+        )
         self.result[key] = value
         return value
 
@@ -203,6 +207,9 @@ class PropertyReader:
 
     def other_keys(self):
         return set(self.ctx.mapping.keys()).difference(self._keys_read)
+
+    def assert_no_other_keys(self, error: "InputErrorType"):
+        self.ctx.assert_that(len(self.other_keys()) == 0, error)
 
 
 InputErrorType = str | ConfigError | Exception
