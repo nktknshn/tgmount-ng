@@ -1,6 +1,5 @@
 # Overview
 
-
 New version of tgmount
 
 **VERY ALPHA SO FAR**
@@ -13,6 +12,11 @@ Table of Contents
 * [Mounting multiple entities](#mounting-multiple-entities)
   * [Sample config](#sample-config)
 * [Client commands](#client-commands)
+  * [mount](#tgmount-mount)
+  * [mount config](#tgmount-mount-config)
+  * [list dialogs](#tgmount-list-dialogs)
+  * [list documents](#tgmount-list-documents)
+  * [download](#tgmount-download)
 * [Config file structure](#config-file-structure)
 * [Playing flac and mp3 from a zip archive](#playing-flac-and-mp3-from-a-zip-archive)
 * [Known bugs](#known-bugs)
@@ -149,8 +153,7 @@ More about config structure read in [Config file structure](#config-file-structu
 
 <!-- `tgmount auth` -->
 
-### cli.py mount
-
+### tgmount mount
 
 ```
 cli.py mount [--filter FILTER] [--root-config ROOT_CONFIG]
@@ -300,7 +303,12 @@ Example:
 cli.py download -O /tmp -R 256KB tgmounttestingchannel 532 11 51 18 
 ```
 
-<!-- `tgmount download` -->
+Im combination with `list documents`
+
+```bash
+cli.py download ru_python $(cli.py list documents ru_python --filter InputMessagesFilterDocument --limit 10 --json | jq  '.[]|.id') -O /tmp
+```
+
 
 ## Config file structure
 
@@ -314,7 +322,7 @@ Config file has the following sections:
 
 ### Top level properties
 ```yaml
-# 
+# optional. can be overwritten by --mount-dir argument 
 mount_dir: ~/mnt/tgmount
 ```
 ### client
@@ -357,6 +365,9 @@ message_sources:
     # limits the number of messages
     limit: 1000
 
+    # format is `31/12/2023` or '31/12/2023 13:00'
+    offset_date: `31/12/2023`
+
     offset_id: 0
     min_id: 0
     max_id: 0
@@ -364,9 +375,6 @@ message_sources:
     reply_to: int
     from_user: str | int
     reverse: False
-
-    # format is `31/12/2023` or '31/12/2023 13:00'
-    offset_date: None
 ```
 
 ### caches
