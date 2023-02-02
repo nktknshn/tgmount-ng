@@ -71,6 +71,10 @@ class FileProto(Protocol):
     duration: int | None
 
 
+class MediaProto(Protocol):
+    pass
+
+
 class DocumentProto(Protocol):
     id: int
     size: int

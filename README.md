@@ -5,6 +5,9 @@ New version of tgmount
 
 **VERY ALPHA SO FAR**
 
+Table of Contents
+=================
+* Basic usage
 
 ## Requirements
 - Linux
@@ -133,7 +136,7 @@ root:
         Union: [MessageWithCompressedPhoto, MessageWithDocumentImage]
 ```
 
-More about config structure read in [Config file structure]()
+More about config structure read in [Config file structure](#config-file-structure)
 
 ## Client commands
 
@@ -149,7 +152,6 @@ cli.py mount [--filter FILTER] [--root-config ROOT_CONFIG]
 [--reply-to REPLY_TO] [--from-user FROM_USER] [--reverse] [--no-updates] 
 [--debug-fuse] [--min-tasks MIN_TASKS] entity mount-dir
 ```
-
 
 Define the structure of the mounted folder by one of these options
 ```
@@ -219,17 +221,81 @@ Other arguments
 cli.py mount-config [--mount-dir MOUNT_DIR] CONFIG_FILE MOUNT_DIR
 ```
 
-
-<!-- `tgmount list` -->
-
-
 ### tgmount list dialogs
+
+```
+cli.py list dialogs
+```
 
 ### tgmount list documents
 
+```
+cli.py list documents [--filter FILTER] [--offset-date OFFSET_DATE] [--offset-id OFFSET_ID]
+[--max-id MAX_ID] [--min-id MIN_ID] [--wait_time WAIT_TIME] [--limit LIMIT] 
+[--reply-to REPLY_TO] [--from-user FROM_USER] [--reverse] [--json]
+[--print-message] [--include-unsupported] [--only-unsupported] [--all-types]
+[--only-unique-docs] entity
+```
+
+```--print-message```
+
+Include stringified message object in the output
+
+`--all-types`
+
+Print all classes a message matches
+
+`--only-unique-docs`
+
+Exclude repeating documents 
+
+`--include-unsupported`
+
+Include messages that are not supported for mounting
+
+`--only-unique-docs`
+
+Print only them
+
+`--json`
+
+Print in json format
+
+### tgmount download
+
+```
+tgmount download [--output-dir OUTPUT_DIR] [--keep-filename] [--request_size REQUEST_SIZE] entity ids [ids ...]
+
+`--keep-filename`
+
+Keep original filenames
+
+`--output-dir`
+
+Destination folder for files
+
+`--request_size`
+
+How much data to fetch per request
+
+`entity`
+
+Entity to download from
+
+`ids`
+
+Messages ids
+
+Example:
+```
+cli.py download -O /tmp -R 256KB tgmounttestingchannel 532 11 51 18 
+```
+
+```
+
 <!-- `tgmount download` -->
 
-## Config file structure
+## <a id='config-file-structure'></a>Config file structure
 
 Config file has the following sections: 
 - `client`
@@ -597,23 +663,29 @@ UnpackedZip
 ```
 
 ## Playing flac and mp3 from a zip archive
-1. Seeking in files which are stored in a zip archive only works by reading the offset bytes.  
+1. Seeking in files which are stored in a zip archive only works by reading the 
+offset bytes.  
 2. id3v1 tags are stored in the end of a media file :)
 https://github.com/quodlibet/mutagen/blob/master/mutagen/id3/_id3v1.py#L34
 
 And most of the players try to read it. So just adding a mp3 or flac
 to a player will fetch the whole file from the telegram cloud.
 
-In current moment this is solved by custom read function for mp3 and flac files in archives. The `read` call returns 4096 zero bytes when
+In current moment this is solved by custom read function for mp3 and flac files 
+in archives. The `read` call returns 4096 zero bytes when
   1. less than `max_total_read = 128KB` bytes has been read from the file so far
   2. `file_size - offset < distance_to_file_end = 16KB`
-  3. `size == 4096` (usually players read this amount looking for id3v1 (requires further investigation to find a less hacky way))
+  3. `size == 4096` (usually players read this amount looking for id3v1 (requires 
+  further investigation to find a less hacky way))
 
   See `FileContentZipFixingId3v1` class
 
-To disable this behaviour use `--no-fix-id3v1` argument with `mount` command. In case of mounting a config set `fix_id3v1` property of `UnpackedZip` to False:
+To disable this behavior use `--no-fix-id3v1` argument with `mount` command. 
+In case of mounting a config set `fix_id3v1` property of `UnpackedZip` to False:
 ```yaml
 producer: {UnpackedZip: {fix_id3v1: False}}
 ```
+
 ## Known bugs
 - No updates received during reconnection
+- Combination of `--filter`, `--offset-date` and `--reverse` always returns empty result

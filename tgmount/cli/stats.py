@@ -18,18 +18,16 @@ def print_inodes(inodes: list[tuple[int, list[str]]]):
         print(f"{inode}\t{os.path.join(*path_list)}")
 
 
+import sys
+
+
 async def stats(args: Namespace):
-    reader, writer = await asyncio.open_unix_connection(args.socket_file)
-    data = await reader.read()
-    data_dict = json.loads(data)
+    for x in range(10000):
+        print(x)
 
-    if args.stats_subcommand == "inodes":
-        print_output(data_dict["fs"]["inodes"], print_inodes, print_json=args.json)
-
-    elif args.stats_subcommand == "inodes-tree":
-        print_output(data_dict["fs"]["tree"], None, print_json=args.json)
-
-    writer.close()
+    # IMPORTANT: Flush stdout here, to ensure that the
+    # SIGPIPE-triggered exception can be caught.
+    sys.stdout.flush()
 
 
 def add_stats_parser(command_stats: ArgumentParser):

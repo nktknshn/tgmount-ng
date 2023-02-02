@@ -5,3 +5,4 @@ from .stats import stats, add_stats_parser
 from .mount import mount, add_mount_arguments
 from .logger import logger
 from .validate import validate, add_validate_arguments
+from .download import download, add_download_arguments

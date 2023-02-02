@@ -4,7 +4,7 @@ from typing import Awaitable, Callable, Mapping, Type
 
 from tgmount import vfs
 from tgmount.tgclient.guards import *
-from tgmount.util import is_not_none, none_fallback
+from tgmount.util import is_not_none, none_fallback, sanitize_string_for_path
 from .error import FileFactoryError
 from .types import FileFactoryProto
 
@@ -175,7 +175,7 @@ class FileFactoryBase(FileFactoryProto[T], abc.ABC):
             supported_item
         )
 
-        return await resolve_future_or_value(fname)
+        return sanitize_string_for_path(await resolve_future_or_value(fname))
 
     @abstractmethod
     async def file(

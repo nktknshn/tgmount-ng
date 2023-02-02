@@ -15,48 +15,61 @@ from tgmount.util import int_or_string, map_none, yes
 from .logger import logger
 
 
-def add_mount_arguments(command_mount: ArgumentParser):
-    command_mount.add_argument("entity", type=str)
-    command_mount.add_argument("mount_dir", type=str, metavar="mount-dir")
-
-    command_mount.add_argument(
+def add_get_messages_args(parser: ArgumentParser):
+    parser.add_argument(
         "--filter",
         type=str,
         dest="filter",
         choices=list(TelegramMessagesFetcher.FILTERS.keys()),
     )
+    parser.add_argument("--offset-date", type=parse_datetime, dest="offset_date")
+    parser.add_argument("--offset-id", default=0, type=int, dest="offset_id")
+    parser.add_argument("--max-id", default=0, type=int, dest="max_id")
+    parser.add_argument("--min-id", default=0, type=int, dest="min_id")
+    parser.add_argument("--wait_time", type=float, dest="wait_time")
+    parser.add_argument("--limit", type=int, dest="limit")
+
+    parser.add_argument("--reply-to", type=int, dest="reply_to")
+    parser.add_argument("--from-user", type=int_or_string, dest="from_user")
+    parser.add_argument("--reverse", default=False, action="store_true", dest="reverse")
+
+
+def add_mount_arguments(command_mount: ArgumentParser):
+    command_mount.add_argument("entity", type=str)
+    command_mount.add_argument("mount_dir", type=str, metavar="mount-dir")
 
     config_arg = command_mount.add_mutually_exclusive_group()
 
-    config_arg.add_argument("--root-config", type=str, dest="root_config")
+    add_get_messages_args(command_mount)
+
+    config_arg.add_argument(
+        "--root-config",
+        type=str,
+        dest="root_config",
+        help="Config to use to build the root folder.",
+    )
 
     config_arg.add_argument(
         "--producer",
         type=str,
         dest="producer",
         choices=list(ProducersProvider.producers.keys()),
+        help="Producer to use to build the root folder.",
     )
 
-    command_mount.add_argument("--offset-date", type=parse_datetime, dest="offset_date")
-    command_mount.add_argument("--offset-id", default=0, type=int, dest="offset_id")
-    command_mount.add_argument("--max-id", default=0, type=int, dest="max_id")
-    command_mount.add_argument("--min-id", default=0, type=int, dest="min_id")
-    command_mount.add_argument("--wait_time", type=float, dest="wait_time")
-    command_mount.add_argument("--limit", type=int, dest="limit")
-
-    command_mount.add_argument("--reply-to", type=int, dest="reply_to")
-    command_mount.add_argument("--from-user", type=int_or_string, dest="from_user")
     command_mount.add_argument(
-        "--reverse", default=False, action="store_true", dest="reverse"
-    )
-    # command_mount.add_argument(
-    #     "--mount-texts", default=False, action="store_true", dest="mount_texts"
-    # )
-    command_mount.add_argument(
-        "--no-updates", default=False, action="store_true", dest="no_updates"
+        "--no-updates",
+        default=False,
+        action="store_true",
+        dest="no_updates",
+        help="Do not listen for updates in the entity",
     )
     command_mount.add_argument(
-        "--no-fix-id3v1", default=False, action="store_true", dest="no_fix_id3v1"
+        "--no-fix-id3v1",
+        default=False,
+        action="store_true",
+        dest="no_fix_id3v1",
+        help="Do not patch read method for zipped flac and mp3.",
     )
 
     command_mount.add_argument(

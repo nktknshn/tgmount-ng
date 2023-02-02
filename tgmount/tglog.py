@@ -1,4 +1,5 @@
 import asyncio
+from datetime import datetime
 import logging
 import tgmount
 
@@ -148,11 +149,12 @@ class Formatter(logging.Formatter):
     def _format(self, rec: TgmountLogRecord) -> str:
         rec.message = rec.getMessage()
         rec.name = rec.name.replace("tgmount.", "", 1)
+        time = datetime.fromtimestamp(rec.created).strftime("%d/%m %H:%M:%S")
 
         if hasattr(rec, "tag") and yes(rec.tag):
-            log_str = f"{rec.levelname} [{rec.name}] [{rec.tag}] {rec.message}"
+            log_str = f"{time} {rec.levelname} [{rec.name}] [{rec.tag}] {rec.message}"
         else:
-            log_str = f"{rec.levelname} [{rec.name}] {rec.message}"
+            log_str = f"{time} {rec.levelname} [{rec.name}] {rec.message}"
 
         if self.print_task_name:
             log_str = f"{rec.task_name} {log_str}"

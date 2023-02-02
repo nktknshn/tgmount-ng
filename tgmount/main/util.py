@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import sys
 import warnings
 
 import pyfuse3
@@ -78,21 +79,19 @@ def run_main(main_func, forever=None, loop=None):
 
         if forever is True or (main.run_forever):
             loop.run_forever()
-
     except KeyboardInterrupt:
         print("\nKeyboardInterrupt")
     except Exception as e:
         # print(str(e))
         # print(str(traceback.format_exc()))
         raise e
-    finally:
 
+    finally:
         if main.mounted:
             pyfuse3.close(unmount=True)
 
         if main.cleanup:
             main.cleanup()
-        # loop.shutdown_asyncgens()
 
         def shutdown_exception_handler(loop, context):
             if "exception" not in context or not isinstance(
@@ -104,7 +103,10 @@ def run_main(main_func, forever=None, loop=None):
 
         # Handle shutdown gracefully by waiting for all tasks to be cancelled
         try:
-            all_tasks = asyncio.gather(*asyncio.all_tasks(loop), return_exceptions=True)
+            all_tasks = asyncio.gather(
+                *asyncio.all_tasks(loop),
+                return_exceptions=True,
+            )
             all_tasks.cancel()
 
             with contextlib.suppress(asyncio.CancelledError):

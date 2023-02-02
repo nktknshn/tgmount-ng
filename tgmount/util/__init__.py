@@ -64,6 +64,16 @@ def int_or_string(value: int | str):
         return str(value)
 
 
+def list_of_int(value: Any):
+    if not isinstance(value, str):
+        return ValueError(f"Incorrect string: {value}")
+
+    try:
+        return list(map(int, value.split(",")))
+    except ValueError:
+        return ValueError(f"Incorrect list of ints: {value}")
+
+
 def sanitize_string_for_path(name: str) -> str:
     name = name.replace("/", "")
 

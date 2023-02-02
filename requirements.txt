@@ -6,3 +6,4 @@ greenback
 aiofiles
 pytest-asyncio
 pyyaml
+tqdm

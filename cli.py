@@ -1,3 +1,5 @@
+import os
+import sys
 import traceback
 
 import argparse
@@ -7,7 +9,6 @@ from tgmount import cli
 from tgmount import main as main_settings
 from tgmount.cli.util import get_client, get_tgapp_and_session
 
-# import list_dialogs, list_documents, add_list_documents_arguments
 from tgmount.main.util import run_main
 from tgmount.tglog import init_logging
 from tgmount.error import TgmountError
@@ -35,11 +36,12 @@ def get_parser():
 
     commands_subparsers = parser.add_subparsers(dest="command")
 
-    command_auth = commands_subparsers.add_parser("auth")
+    # command_auth = commands_subparsers.add_parser("auth")
     command_mount = commands_subparsers.add_parser("mount-config")
     command_mount_args = commands_subparsers.add_parser("mount")
     command_validate = commands_subparsers.add_parser("validate")
-    command_stats = commands_subparsers.add_parser("stats")
+    # command_stats = commands_subparsers.add_parser("stats")
+    command_download = commands_subparsers.add_parser("download")
 
     command_list = commands_subparsers.add_parser("list")
     command_list_subparsers = command_list.add_subparsers(dest="list_subcommand")
@@ -49,16 +51,18 @@ def get_parser():
 
     cli.add_list_documents_arguments(command_list_documents)
     cli.add_mount_config_arguments(command_mount)
-    cli.add_stats_parser(command_stats)
+    # cli.add_stats_parser(command_stats)
     cli.add_mount_arguments(command_mount_args)
     cli.add_validate_arguments(command_validate)
+    cli.add_download_arguments(command_download)
 
-    return parser
+    return parser, command_list
 
 
 async def main(loop):
 
-    args = get_parser().parse_args()
+    parser, command_list = get_parser()
+    args = parser.parse_args()
 
     init_logging(
         debug_level=logging.DEBUG if args.debug else logging.INFO,
@@ -75,21 +79,11 @@ async def main(loop):
         session, api_id, api_hash = get_tgapp_and_session(args)
 
         async with get_client(session, api_id, api_hash, loop=loop) as client:
-            await cli.list_documents(
-                client,
-                args.entity,
-                limit=args.limit,
-                reverse=args.reverse,
-                print_message_object=args.print_message_object,
-                include_unsupported=args.include_unsupported,
-                only_unsupported=args.only_unsupported,
-                print_all_matching_types=args.print_all_matching_types,
-                only_unique_docs=args.only_unique_docs,
-            )
-
+            await cli.list_documents(client, args)
+    elif args.command == "list":
+        command_list.print_help()
     elif args.command == "mount-config":
         session, api_id, api_hash = get_tgapp_and_session(args)
-        # main_settings.run_forever = args.run_server
 
         api_credentials = (
             (api_id, api_hash) if api_id is not None and api_hash is not None else None
@@ -115,17 +109,34 @@ async def main(loop):
             session=session,
         )
     elif args.command == "stats":
-        await cli.stats(args)
+        session, api_id, api_hash = get_tgapp_and_session(args)
+
+        async with get_client(session, api_id, api_hash, loop=loop) as client:
+            await cli.stats(args)
     elif args.command == "validate":
         await cli.validate(args)
+    elif args.command == "download":
+
+        session, api_id, api_hash = get_tgapp_and_session(args)
+        async with get_client(session, api_id, api_hash, loop=loop) as client:
+
+            await cli.download(client, args)
+
+    else:
+        parser.print_help()
 
 
 if __name__ == "__main__":
+
     try:
         run_main(
             main,
             forever=main_settings.run_forever,
         )
+    except BrokenPipeError:
+        devnull = os.open(os.devnull, os.O_WRONLY)
+        os.dup2(devnull, sys.stdout.fileno())
+        sys.exit(1)  # Python exits with error code 1 on EPIPE
     except TgmountError as e:
         print(f"Tgmount error happened: {e}")
     except Exception as e:

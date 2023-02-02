@@ -20,7 +20,7 @@ TelegramMessageClasses = (
     | guards.MessageWithVideoFile
     | guards.MessageWithVideo
     | guards.MessageWithSticker
-    # | guards.MessageWithText
+    | guards.MessageWithText
     | guards.MessageWithReactions
     | guards.MessageWithoutDocument
 )
@@ -47,7 +47,7 @@ class ClassifierDefault(ClassifierBase[TelegramMessageClasses | T], Generic[T]):
         guards.MessageWithVideoFile,
         guards.MessageWithVideo,
         guards.MessageWithSticker,
-        # guards.MessageWithText,
+        guards.MessageWithText,
         guards.MessageWithReactions,
         guards.MessageWithoutDocument,
     ]
