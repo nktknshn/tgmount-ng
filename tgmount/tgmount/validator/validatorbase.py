@@ -19,7 +19,8 @@ class ConfigValidatorError(ConfigErrorWithPath):
 
 
 class ConfigValidatorBase:
-    """ The task for this class is to verify config before fetching messages. """
+    """The task for this class is to verify config before fetching messages."""
+
     logger = logger.getChild(f"ConfigValidatorBase")
 
     def __init__(self, builder: TgmountBuilderBase) -> None:
@@ -75,7 +76,7 @@ class ConfigValidatorBase:
         self, resources: TgmountResources, key: str, dir_cfg: config.DirConfig
     ):
         """ """
-        self.logger.debug(f"verify_filters({key})")
+        # self.logger.debug(f"verify_filters({key})")
 
         filter_prop = dir_cfg.filter
         parse_filter = functools.partial(self._parse_filter, resources)

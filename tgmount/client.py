@@ -13,15 +13,6 @@ from tgmount.main.util import run_main
 from tgmount.tglog import init_logging
 from tgmount.error import TgmountError
 
-"""
-export TGAPP=111111:ac7e6350d04adeadbeedf1af778773d6f0 TGSESSION=tgfs
-
-tgmount auth [session]
-tgmount list dialogs
-tgmount list documents [entity]
-tgmount mount [config] [mount_path] 
-"""
-
 
 def get_parser():
     parser = argparse.ArgumentParser()
@@ -59,7 +50,7 @@ def get_parser():
     return parser, command_list
 
 
-async def main(loop):
+async def client_main(loop):
 
     parser, command_list = get_parser()
     args = parser.parse_args()
@@ -126,19 +117,22 @@ async def main(loop):
         parser.print_help()
 
 
-if __name__ == "__main__":
-
+def main():
     try:
         run_main(
-            main,
+            client_main,
             forever=main_settings.run_forever,
         )
     except BrokenPipeError:
         devnull = os.open(os.devnull, os.O_WRONLY)
         os.dup2(devnull, sys.stdout.fileno())
-        sys.exit(1)  # Python exits with error code 1 on EPIPE
+        sys.exit(1)
     except TgmountError as e:
         print(f"Tgmount error happened: {e}")
     except Exception as e:
         print(f"Other exception happened: {e}")
         print(str(traceback.format_exc()))
+
+
+if __name__ == "__main__":
+    main()

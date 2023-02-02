@@ -1,6 +1,15 @@
 # Overview
 
-New version of tgmount
+Creates virtual file system with files posted on telegram.  
+<!-- tgmount lets you to mount files uploaded to telegram as a virtual file system 
+so access them like regular files from a cloud without downloading. This allows to use
+regular desktop media players to listen to music streaming it directly from telegram servers. Pictures and videos 
+
+Features:
+* Flexible VFS structure configuration 
+* ZIP archives as folders
+* Multiple files organization strategies
+-->
 
 **VERY ALPHA SO FAR**
 
@@ -28,10 +37,7 @@ Table of Contents
 ## Installation:
 
 ```
-virtualenv .venv3.10 -p python3.10
-source .venv3.10/bin/activate
-pip install -r requirements.txt
-python cli.py list dialogs
+pip install tgmount
 ```
 
 ## Basic usage
