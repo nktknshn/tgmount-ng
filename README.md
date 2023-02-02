@@ -7,12 +7,19 @@ New version of tgmount
 
 Table of Contents
 =================
-* Basic usage
+* [Installation](#installation)
+* [Requirements](#requirements)
+* [Basic usage](#requirements)
+* [Mounting multiple entities](#mounting-multiple-entities)
+  * [Sample config](#sample-config)
+* [Client commands](#client-commands)
+* [Config file structure](#config-file-structure)
+* [Playing flac and mp3 from a zip archive](#playing-flac-and-mp3-from-a-zip-archive)
+* [Known bugs](#known-bugs)
 
 ## Requirements
 - Linux
 - Python?
-
 
 ## Installation:
 
@@ -63,7 +70,7 @@ To mount multiple entities use `mount-config` command
 cli.py mount-config examples/config.yaml
 ```
 
-Sample config:
+### Sample config
 ```yaml
 # can be overwritten by --mount-dir argument
 mount_dir: /home/horn/mnt/tgmount1
@@ -265,6 +272,7 @@ Print in json format
 
 ```
 tgmount download [--output-dir OUTPUT_DIR] [--keep-filename] [--request_size REQUEST_SIZE] entity ids [ids ...]
+```
 
 `--keep-filename`
 
@@ -287,15 +295,14 @@ Entity to download from
 Messages ids
 
 Example:
+
 ```
 cli.py download -O /tmp -R 256KB tgmounttestingchannel 532 11 51 18 
 ```
 
-```
-
 <!-- `tgmount download` -->
 
-## <a id='config-file-structure'></a>Config file structure
+## Config file structure
 
 Config file has the following sections: 
 - `client`
