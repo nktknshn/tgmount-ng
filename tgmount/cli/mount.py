@@ -56,6 +56,9 @@ def add_mount_arguments(command_mount: ArgumentParser):
         choices=list(ProducersProvider.producers.keys()),
         help="Producer to use to build the root folder.",
     )
+    command_mount.add_argument(
+        "--mount-texts", default=False, action="store_true", dest="mount_texts"
+    )
 
     command_mount.add_argument(
         "--no-updates",
@@ -91,7 +94,7 @@ async def mount(
     producer = None
     root_content = {
         "source": {"source": args.entity, "recursive": True},
-        "filter": "All",
+        "filter": "MessageDownloadable" if not args.mount_texts else "All",
         ".sysinfo": {"producer": "SysInfo", "source": args.entity},
     }
 

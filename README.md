@@ -165,7 +165,7 @@ More about config structure read in [Config file structure](#config-file-structu
 cli.py mount [--filter FILTER] [--root-config ROOT_CONFIG]
 [--producer PRODUCER] [--offset-date OFFSET_DATE] [--offset-id OFFSET_ID] 
 [--max-id MAX_ID] [--min-id MIN_ID] [--wait_time WAIT_TIME] [--limit LIMIT] 
-[--reply-to REPLY_TO] [--from-user FROM_USER] [--reverse] [--no-updates] 
+[--reply-to REPLY_TO] [--from-user FROM_USER] [--reverse] [--mount-texts] [--no-updates] 
 [--debug-fuse] [--min-tasks MIN_TASKS] entity mount-dir
 ```
 
@@ -223,6 +223,12 @@ Using these filter speeds up fetching process but these filter cannot be compose
 If you don't need updates 
 ```
 --no-updates
+```
+
+If you want to also to mount text messages as text files
+
+```
+--mount-texts
 ```
 
 Other arguments
