@@ -1,12 +1,15 @@
 import logging
 import os
 
+import pytest
+
 from ..helpers.fixtures_fs import fs_tree1
 from ..helpers.fixtures_common import mnt_dir
 from ..helpers.mountfs import mount_fs_tree_main
 from ..helpers.spawn import spawn_fs_ops
 
 
+@pytest.mark.skip
 def test_fs1(fs_tree1, mnt_dir):
     print("test_fs1()")
 

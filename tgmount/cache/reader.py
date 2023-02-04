@@ -23,7 +23,7 @@ class CacheBlockReaderWriter(CacheBlockReaderWriterBaseProto):
         self._last_read_time: datetime | None = None
         self._tag = tag
         self._logger = self.logger.getChild(
-            none_fallback(self._tag, "NoTaf"), suffix_as_tag=True
+            none_fallback(self._tag, "No Tag"), suffix_as_tag=True
         )
 
     @property

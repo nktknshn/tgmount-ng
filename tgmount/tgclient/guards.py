@@ -81,6 +81,15 @@ class MessageDownloadable(
         )
 
     @staticmethod
+    def get_file_reference(m: "MessageDownloadable") -> bytes:
+        if MessageWithDocument.guard(m):
+            return m.document.file_reference
+        elif MessageWithCompressedPhoto.guard(m):
+            return m.photo.file_reference
+
+        raise ValueError(f"Cannot get file_reference for message: {m}")
+
+    @staticmethod
     def document_or_photo_id(
         m: "MessageProto",
     ) -> int:

@@ -219,6 +219,7 @@ async def test_recursive_filter_5(
     msg0 = await source1.document(text="Hummingbird", file=files.Hummingbird)
 
     await source1.document(text="same document", file=msg0.document)
+
     await source1.text_messages(texts=["hello1", "hello2"])
     await source1.document(
         text="Artist1_song1", file=files.music0, file_name="Artist1_song1.mp3"

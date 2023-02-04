@@ -48,9 +48,11 @@ class MockedClientReader(TgmountTelegramClientReaderProto):
     def subscribe_edited_message(self, listener: ListenerEditedMessage, chats):
         self._storage.subscribe_edited_message(listener=listener, chats=chats)
 
-    async def get_messages(self, entity, **kwargs) -> TotalListTyped[MockedMessage]:
+    async def get_messages(
+        self, entity: int | str, *, ids: list[int] | None = None, **kwargs
+    ) -> TotalListTyped[MockedMessage]:
         await asyncio.sleep(0.1)
-        return await self._storage.get_messages(entity)
+        return await self._storage.get_messages(entity, ids=ids)
 
     def iter_download(
         self,
@@ -90,7 +92,7 @@ class MockedClientWriter(TgmountTelegramClientWriterProto):
         file: str | None = None,
     ) -> MockedMessage:
         self.logger.info(f"send_message({entity}, {message})")
-        return await self._storage.get_entity(entity).message(
+        return await self._storage.create_entity(entity).message(
             text=message,
             # file=file,
             # force_document=force_document,
@@ -120,7 +122,7 @@ class MockedClientWriter(TgmountTelegramClientWriterProto):
         if mtype is not None and mtype.startswith("video") and not force_document:
             video = True
 
-        return await self._storage.get_entity(entity).document(
+        return await self._storage.create_entity(entity).document(
             text=caption,
             file=file,
             voice_note=voice_note,

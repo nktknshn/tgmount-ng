@@ -281,11 +281,15 @@ class TgmountIntegrationContext:
             cfg_or_root = self.config_parser.parse_root(cfg_or_root)
 
         # print(cfg_or_root.other_keys["source1"])
+        cfg = self._get_config(cfg_or_root)
+
+        for ms in cfg.message_sources.sources.values():
+            self.storage.create_entity(ms.entity)
 
         await _run_test(
             handle_mount(self.mnt_dir)(test_func),
             mnt_dir=self.mnt_dir,
-            cfg=self._get_config(cfg_or_root),
+            cfg=cfg,
             storage=self.storage,
             debug=self.debug,
             main_function=self.main_function,

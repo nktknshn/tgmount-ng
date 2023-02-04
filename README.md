@@ -32,7 +32,7 @@ Table of Contents
 
 ## Requirements
 - Linux
-- Python?
+- Python 3.10 (not sure about 3.9 and less)
 
 ## Installation:
 
@@ -51,24 +51,24 @@ $ export TGAPP=1234567:deadbeef0d04a3efe93e1af778773d6f0 TGSESSION=tgfs
 To mount a channel/chat/group
 
 ```
-cli.py mount tgmounttestingchannel ~/mnt/tgmount1/
+tgmount mount tgmounttestingchannel ~/mnt/tgmount1/
 ```
 
 To mount an entity that doesn't have a username you will need to get its id. 
 ```bash
-cli.py list dialogs | grep 'my friends private chat'
+tgmount list dialogs | grep 'my friends private chat'
 ```
 
 To mount zip files as directories use `UnpackedZip` producer
 
 ```
-cli.py mount tgmounttestingchannel ~/mnt/tgmount1/ --producer UnpackedZip
+tgmount mount tgmounttestingchannel ~/mnt/tgmount1/ --producer UnpackedZip
 ```
 
 Use config file to create a more complex vfs structure  
 
 ```
-cli.py mount tgmounttestingchannel ~/mnt/tgmount1/ --root-config examples/root_config.yaml
+tgmount mount tgmounttestingchannel ~/mnt/tgmount1/ --root-config examples/root_config.yaml
 ```
 
 
@@ -77,7 +77,7 @@ cli.py mount tgmounttestingchannel ~/mnt/tgmount1/ --root-config examples/root_c
 To mount multiple entities use `mount-config` command
 
 ```
-cli.py mount-config examples/config.yaml
+tgmount mount-config examples/config.yaml
 ```
 
 ### Sample config
@@ -162,7 +162,7 @@ More about config structure read in [Config file structure](#config-file-structu
 ### tgmount mount
 
 ```
-cli.py mount [--filter FILTER] [--root-config ROOT_CONFIG]
+tgmount mount [--filter FILTER] [--root-config ROOT_CONFIG]
 [--producer PRODUCER] [--offset-date OFFSET_DATE] [--offset-id OFFSET_ID] 
 [--max-id MAX_ID] [--min-id MIN_ID] [--wait_time WAIT_TIME] [--limit LIMIT] 
 [--reply-to REPLY_TO] [--from-user FROM_USER] [--reverse] [--mount-texts] [--no-updates] 
@@ -240,19 +240,19 @@ Other arguments
 ### tgmount mount-config
 
 ```
-cli.py mount-config [--mount-dir MOUNT_DIR] CONFIG_FILE MOUNT_DIR
+tgmount mount-config [--mount-dir MOUNT_DIR] CONFIG_FILE MOUNT_DIR
 ```
 
 ### tgmount list dialogs
 
 ```
-cli.py list dialogs
+tgmount list dialogs
 ```
 
 ### tgmount list documents
 
 ```
-cli.py list documents [--filter FILTER] [--offset-date OFFSET_DATE] [--offset-id OFFSET_ID]
+tgmount list documents [--filter FILTER] [--offset-date OFFSET_DATE] [--offset-id OFFSET_ID]
 [--max-id MAX_ID] [--min-id MIN_ID] [--wait_time WAIT_TIME] [--limit LIMIT] 
 [--reply-to REPLY_TO] [--from-user FROM_USER] [--reverse] [--json]
 [--print-message] [--include-unsupported] [--only-unsupported] [--all-types]
@@ -312,13 +312,13 @@ Messages ids
 Example:
 
 ```
-cli.py download -O /tmp -R 256KB tgmounttestingchannel 532 11 51 18 
+tgmount download -O /tmp -R 256KB tgmounttestingchannel 532 11 51 18 
 ```
 
 Im combination with `list documents`
 
 ```bash
-cli.py download ru_python $(cli.py list documents ru_python --filter InputMessagesFilterDocument --limit 10 --json | jq  '.[]|.id') -O /tmp
+tgmount download ru_python $(tgmount list documents ru_python --filter InputMessagesFilterDocument --limit 10 --json | jq  '.[]|.id') -O /tmp
 ```
 
 

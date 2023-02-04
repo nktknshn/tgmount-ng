@@ -1,3 +1,5 @@
 import telethon
 
-InputSourceItem = telethon.types.Photo | telethon.types.Document
+from tgmount.tgclient.message_types import DocumentProto, PhotoProto
+
+InputSourceItem = PhotoProto | DocumentProto

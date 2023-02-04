@@ -81,7 +81,7 @@ class TgmountTelegramClientReaderProto(
     TgmountTelegramClientIterDownloadProto,
     Protocol,
 ):
-    """Interface for client that can fetch messages and receive updates"""
+    """Interface for client that can fetch messages, download them and receive updates"""
 
     @abstractmethod
     def __init__(self, *args, **kwargs) -> None:

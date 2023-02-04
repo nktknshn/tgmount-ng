@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from datetime import datetime
-from typing import Any, Optional, Protocol
+from typing import Any, Optional, Protocol, TypeGuard
 
 import telethon
 
@@ -98,21 +98,31 @@ class DocumentProto(Protocol):
                 return attr
 
 
-class PhotoSizeProto:
+class PhotoSizeProtoBasic:
     type: str
     w: int
     h: int
     size: int
 
 
+class PhotoSizeProtoProgressive:
+    type: str
+    w: int
+    h: int
+    sizes: list[int]
+
+
+PhotoSizeProto = PhotoSizeProtoBasic | PhotoSizeProtoProgressive
+
+
 class PhotoProto(Protocol):
     id: int
     access_hash: int
     file_reference: bytes
-    sizes: list[PhotoSizeProto | Any]
+    sizes: list[PhotoSizeProto]
 
     @staticmethod
-    def guard(photo: Any):
+    def guard(photo: Any) -> TypeGuard["PhotoProto"]:
         return isinstance(photo, telethon.types.Photo)
 
 

@@ -4,10 +4,12 @@ from typing import Awaitable, Callable, Mapping, Protocol, Type
 
 from telethon.tl.custom import Message
 from tgmount.cache.reader import CacheBlockReaderWriter
+from tgmount.tgclient.files_source import get_message_downloadable_size
 from tgmount.util import map_none_else, none_fallback_lazy
 
 from tgmount.util.func import snd
-from tgmount.tgclient.files_source import get_filesource_item
+
+# from tgmount.tgclient.files_source import get_filesource_item
 from tgmount.tgclient.guards import MessageDownloadable
 from tgmount.tgclient.message_types import MessageProto
 from .types import (
@@ -140,7 +142,7 @@ class CacheInBlocks(
     async def create_block_storage(self, message: MessageDownloadable):
         return self.CacheBlocksStorage(
             block_size=self._block_size,
-            total_size=get_filesource_item(message).size,
+            total_size=get_message_downloadable_size(message),
         )
 
     async def put_block(

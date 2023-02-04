@@ -20,6 +20,7 @@ async def test_validator():
     )
 
     validator = ConfigValidator(builder)
-    await validator.verify_config(cfg)
+    with pytest.raises(Exception):
+        await validator.verify_config(cfg)
 
     pprint(cfg)

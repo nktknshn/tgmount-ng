@@ -1,45 +1,20 @@
+import os
+import random
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import overload
+
 import telethon
+
 import tgmount.tgclient as tg
-
+from tgmount.tgclient.guards import MessageWithCompressedPhoto, MessageWithDocument
 from tgmount.tgclient.message_types import *
-from tgmount.tgclient.types import (
-    InputDocumentFileLocation,
-    InputPhotoFileLocation,
-    TotalListTyped,
-)
-from telethon import events, hints
-import random
-import aiofiles
-import os
-
 from tgmount.util import map_none, none_fallback
+from .util import random_int
 
 # Message = telethon.tl.custom.Message
 # Document = telethon.types.Document
 Client = tg.TgmountTelegramClient
-
-random_int = lambda max: lambda: int(max * random.random())
-
-
-class GlobalIds:
-    STARTING_ID = 0
-
-    def __init__(self) -> None:
-        self.ids: dict[str, int] = {}
-
-    def get_new_id(self, idid: str):
-        if idid not in self.ids:
-            self.ids[idid] = self.STARTING_ID
-
-        res = self.ids[idid]
-        self.ids[idid] += 1
-        return res
-
-
-global_ids = GlobalIds()
 
 
 @dataclass
@@ -74,6 +49,14 @@ class MockedDocument(DocumentProto):
     # They must be cached by the client, along with the origin context where the document/photo object was found, in order to be refetched when the file reference expires.
     file_reference: bytes = field(default_factory=bytes)
     attributes: list = field(default_factory=list)
+
+
+@dataclass
+class MockedPhoto(telethon.types.Photo, PhotoProto):
+    id: int = field(default_factory=random_int(100000))
+    access_hash: int = field(default_factory=random_int(100000))
+    sizes: list[PhotoSizeProto] = field(default_factory=list)
+    file_reference: bytes = field(default_factory=bytes)
 
 
 @dataclass
@@ -150,10 +133,18 @@ class MockedFile(FileProto):
             ext=map_none(file_name, lambda n: os.path.splitext(n)[1]),
         )
 
+    @staticmethod
+    def from_photo(photo: PhotoProto):
+        return MockedFile(
+            name=None,
+            mime_type="image/jpeg",
+            ext=None,
+        )
+
 
 class MockedMessage(MessageProto):
     def __repr__(self) -> str:
-        return f"MockedMessage({self.id}, file={map_none(self.file, lambda f: f.name)}, sender={self.sender}, chat_id={self.chat_id}, message='{self.message}')"
+        return f"MockedMessage({self.id}, file={map_none(self.file, lambda f: f.name)}, sender={self.sender}, chat_id={self.chat_id}, message='{self.message}, document: {self.document}, photo={self.photo}')"
 
     def __init__(
         self,
@@ -164,10 +155,11 @@ class MockedMessage(MessageProto):
         message=None,
         username=None,
         document: MockedDocument | None = None,
+        photo: MockedPhoto | None = None,
         file=None,
         # storage_file: "StorageFile" | None = None,
         media=None,
-        photo=None,
+        # photo=None,
         voice=None,
         sticker=None,
         video_note=None,
@@ -240,6 +232,11 @@ class MockedMessage(MessageProto):
 from copy import deepcopy
 
 
-class MockedMessageWithDocument(MockedMessage):
+class MockedMessageWithDocument(MessageWithDocument, MockedMessage):
     document: DocumentProto
+    file: FileProto
+
+
+class MockedMessageWithPhoto(MessageWithCompressedPhoto, MockedMessage):
+    photo: PhotoProto
     file: FileProto

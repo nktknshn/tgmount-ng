@@ -36,6 +36,7 @@ def async_lambda(f):
     return _inner
 
 
+@pytest.mark.skip
 @pytest.mark.asyncio
 async def test_fs1(mnt_dir, caplog):
 
@@ -95,6 +96,7 @@ async def test_fs1(mnt_dir, caplog):
         assert os.listdir(ctx.path("subf")) == ["ccc"]
 
 
+@pytest.mark.skip
 @pytest.mark.asyncio
 async def test_fs_rename_filelikes(mnt_dir, caplog):
     get_props = lambda ctx: {

@@ -22,6 +22,7 @@ class OutputRecord:
     filename: str
     original_filename: str | None
     text: str | None
+    mime: str | None
     message_object: str | None
     date: str | None
 
@@ -56,6 +57,7 @@ class ListDocumentsOutput:
         "document_id",
         # "filename",
         "original_filename",
+        "mime",
         "text",
         "size",
         "date",
@@ -188,6 +190,8 @@ async def list_documents(
                 else None
             )
 
+            mime_type = util.map_none(m.file, lambda f: f.mime_type)
+
             document_id = (
                 MessageDownloadable.document_or_photo_id(m)
                 if MessageDownloadable.guard(m)
@@ -206,6 +210,7 @@ async def list_documents(
             message_record.size = size
             message_record.filename = filename
             message_record.original_filename = original_fname
+            message_record.mime = mime_type
             message_record.text = m.text
 
             message_record.date = util.map_none(

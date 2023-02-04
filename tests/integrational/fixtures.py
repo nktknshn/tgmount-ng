@@ -1,3 +1,4 @@
+import aiofiles
 import os
 from typing import Any
 from attr import dataclass
@@ -15,12 +16,12 @@ def ctx(mnt_dir, caplog):
 
 @pytest.fixture
 def source1(ctx):
-    return ctx.storage.get_entity("source1")
+    return ctx.storage.create_entity("source1")
 
 
 @pytest.fixture
 def source2(ctx):
-    return ctx.storage.get_entity("source2")
+    return ctx.storage.create_entity("source2")
 
 
 class FixtureFile:
@@ -68,6 +69,13 @@ class FixtureFiles:
 
     video0: str
     video1: str
+
+    @staticmethod
+    async def get_file_bytes(path: str) -> bytes:
+        f = await aiofiles.open(path, "rb")
+        bs = await f.read()
+        await f.close()
+        return bs
 
 
 @pytest.fixture

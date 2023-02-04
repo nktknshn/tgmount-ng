@@ -1,5 +1,6 @@
+from tests.helpers.mocked.mocked_message import MockedSender
 from .integrational_test import TgmountIntegrationContext
-from ..helpers.mocked.mocked_storage import MockedSender, StorageEntity
+from ..helpers.mocked.mocked_storage import StorageEntity
 from tgmount.util import none_fallback
 from tgmount.tgmount.producers.producer_by_sender import VfsTreeDirBySender
 from .fixtures import FixtureFiles, Fixtures
@@ -20,8 +21,8 @@ class Context(TgmountIntegrationContext):
         return ctx
 
     def init(self):
-        self.source1 = self.storage.get_entity("source1")
-        self.source2 = self.storage.get_entity("source2")
+        self.source1 = self.storage.create_entity("source1")
+        self.source2 = self.storage.create_entity("source2")
 
     def create_senders(self, count: int):
         self.expected_dirs = {}

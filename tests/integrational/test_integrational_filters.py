@@ -19,6 +19,7 @@ async def test_filters_1(
                 "source": {"source": "source1", "recursive": True},
                 "all": {"producer": "PlainDir"},
                 "all-texts": {"filter": "MessageWithText"},
+                "doc-images": {"filter": "MessageWithDocumentImage"},
                 "docs-with-text": {
                     # works like AND
                     "filter": ["MessageWithText", "MessageWithDocument"]
@@ -55,6 +56,8 @@ async def test_filters_1(
     async def test():
         text_files = list(f"{m.id}_message.txt" for m in text_msgs)
         doc_files = list(f"{m.id}_{m.file.name}" for m in docs_msgs)
+
+        assert await ctx.listdir_set("/source1/doc-images") == set(doc_files[:3])
 
         assert await ctx.listdir_set("/source1/all") == set(doc_files) | set(text_files)
         assert await ctx.listdir_set("/source1/all-texts") == {doc_files[1]} | set(

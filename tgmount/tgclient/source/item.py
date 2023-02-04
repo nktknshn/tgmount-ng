@@ -1,15 +1,17 @@
+from abc import abstractmethod
 from typing import Optional, Protocol
 
-from ..types import TypeInputFileLocation
+from ..types import DocId, InputDocumentFileLocation, InputPhotoFileLocation
 
-SourceItemId = int
+InputLocation = InputDocumentFileLocation | InputPhotoFileLocation
 
 
 class FileSourceItem(Protocol):
-    id: SourceItemId
+    id: DocId
     file_reference: bytes
     access_hash: int
     size: int
 
-    def input_location(self, file_reference: Optional[bytes]) -> TypeInputFileLocation:
+    @abstractmethod
+    def input_location(self, file_reference: Optional[bytes]) -> InputLocation:
         raise NotImplementedError()

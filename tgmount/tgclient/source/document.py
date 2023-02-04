@@ -2,8 +2,9 @@ from typing import Optional
 
 from tgmount.tgclient.message_types import DocumentProto
 
-from ..types import InputDocumentFileLocation, TypeInputFileLocation
-from .item import SourceItemId, FileSourceItem
+
+from ..types import DocId, InputDocumentFileLocation, TypeInputFileLocation
+from .item import FileSourceItem, InputLocation
 
 
 def get_document_input_location(
@@ -20,7 +21,7 @@ def get_document_input_location(
 
 
 class SourceItemDocument(FileSourceItem):
-    id: SourceItemId
+    id: DocId
     file_reference: bytes
     access_hash: int
     size: int
@@ -32,5 +33,5 @@ class SourceItemDocument(FileSourceItem):
         self.size = document.size
         self.document = document
 
-    def input_location(self, file_reference: Optional[bytes]) -> TypeInputFileLocation:
+    def input_location(self, file_reference: Optional[bytes]) -> InputLocation:
         return get_document_input_location(self.document, file_reference)

@@ -6,53 +6,40 @@ from random import random
 # import telethon
 from telethon.errors import FileReferenceExpiredError
 from tgmount import tgclient, vfs
-from tgmount.tgclient.message_types import MessageProto, PhotoProto
+from tgmount.tgclient.message_types import DocumentProto, MessageProto, PhotoProto
 from tgmount.error import TgmountError
 from tgmount.util import none_fallback
 
-from .guards import MessageDownloadable, MessageWithCompressedPhoto
+from .guards import MessageDownloadable, MessageWithCompressedPhoto, MessageWithDocument
 from .source.document import SourceItemDocument
-from .source.item import FileSourceItem
+from .source.item import FileSourceItem, InputLocation
 from .source.photo import SourceItemPhoto
 from .source.types import InputSourceItem
 from .source.util import BLOCK_SIZE, split_range
-from .types import TypeInputFileLocation
+from .types import (
+    DocId,
+    InputDocumentFileLocation,
+    InputPhotoFileLocation,
+)
+
 
 logger = logging.getLogger("tgclient")
 
 T = TypeVar("T")
-
-# XXX telethon.utils.get_input_document
-# XXX telethon.utils.get_input_photo
-# XXX telethon.utils.get_input_media
-# XXX telethon.utils.get_message_id
-# XXX telethon.utils.get_input_location
-# XXX telethon.utils.is_video
-# XXX telethon.utils.is_audio
-# XXX telethon.utils.is_gif
 
 
 class FilesSourceError(TgmountError):
     pass
 
 
-def item_to_inner_object(input_item: InputSourceItem) -> FileSourceItem:
-    if PhotoProto.guard(input_item):
-        item = SourceItemPhoto(input_item)
-    else:
-        item = SourceItemDocument(input_item)
-
-    return item
-
-
-def get_filesource_item(message: MessageDownloadable) -> FileSourceItem:
+def get_message_downloadable_size(message: MessageDownloadable):
     if MessageWithCompressedPhoto.guard(message):
-        return item_to_inner_object(message.photo)
+        return SourceItemPhoto(message.photo).size
 
-    if message.document is not None:
-        return item_to_inner_object(message.document)
+    if MessageWithDocument.guard(message):
+        return SourceItemDocument(message.document).size
 
-    raise ValueError(f"message {message} is not downloadable")
+    raise ValueError(f"Message {message} is not downloadable")
 
 
 class TelegramFilesSource:
@@ -63,13 +50,22 @@ class TelegramFilesSource:
         client: tgclient.client_types.TgmountTelegramClientReaderProto,
         request_size: int | None = None,
     ) -> None:
-        self.client = client
-        self.items_file_references: dict[int, bytes] = {}
-        self.request_size = none_fallback(request_size, BLOCK_SIZE)
+        self._client = client
+        self._items_file_references: dict[DocId, bytes] = {}
+        self._request_size = none_fallback(request_size, BLOCK_SIZE)
+
+    def get_filesource_item(self, message: MessageDownloadable) -> FileSourceItem:
+        if MessageWithCompressedPhoto.guard(message):
+            return SourceItemPhoto(message.photo)
+
+        if MessageWithDocument.guard(message):
+            return SourceItemDocument(message.document)
+
+        raise ValueError(f"Message {message} is not downloadable")
 
     def file_content(self, message: MessageDownloadable) -> vfs.FileContent:
 
-        item = get_filesource_item(message)
+        item = self.get_filesource_item(message)
 
         async def read_func(handle: Any, off: int, size: int) -> bytes:
             return await self.read(message, off, size)
@@ -84,47 +80,51 @@ class TelegramFilesSource:
 
         return await self._item_read_function(message, offset, limit)
 
-    async def _get_item_input_location(
-        self, item: FileSourceItem
-    ) -> TypeInputFileLocation:
+    async def _get_item_input_location(self, item: FileSourceItem) -> InputLocation:
         return item.input_location(
             self._get_item_file_reference(item),
         )
 
     def _get_item_file_reference(self, item: FileSourceItem) -> bytes:
-        return self.items_file_references.get(
+        return self._items_file_references.get(
             item.id,
             item.file_reference,
         )
 
     def _set_item_file_reference(self, item: FileSourceItem, file_reference: bytes):
-        self.items_file_references[item.id] = file_reference
+        self._items_file_references[item.id] = file_reference
 
-    async def _update_item_file_reference(
+    async def _refetch_item_file_reference(
         self, message: MessageDownloadable
-    ) -> TypeInputFileLocation:
+    ) -> InputLocation:
 
-        item = get_filesource_item(message)
+        item = self.get_filesource_item(message)
 
         refetched_msg: MessageProto
 
-        [refetched_msg] = await self.client.get_messages(
+        [refetched_msg] = await self._client.get_messages(
             message.chat_id, ids=[message.id]
         )
 
-        if not MessageDownloadable.guard(message):
-            logger.error(f"refetched_msg isnt a MessageDownloadable")
-            logger.error(f"refetched_msg={refetched_msg}")
-            raise FilesSourceError(f"refetched_msg isnt a MessageDownloadable")
-            # XXX what should i do if refetched_msg is None
+        # logger.debug(f"Refetched message: {refetched_msg}")
+        # logger.debug(f"Refetched message: {refetched_msg.document.file_reference}")
 
-        self._set_item_file_reference(item, refetched_msg.document.file_reference)  # type: ignore
+        if not MessageDownloadable.guard(message):
+            logger.error(f"refetched_msg isn't a MessageDownloadable")
+            logger.error(f"refetched_msg={refetched_msg}")
+            raise FilesSourceError(f"refetched_msg isn't a MessageDownloadable")
+            # XXX what should i do if refetched_msg is None or the document was
+            # removed from the message
+
+        item = self.get_filesource_item(message)
+
+        self._set_item_file_reference(item, item.file_reference)
 
         return await self._get_item_input_location(item)
 
     async def _retrieve_file_chunk(
         self,
-        input_location: TypeInputFileLocation,
+        input_location: InputDocumentFileLocation | InputPhotoFileLocation,
         offset: int,
         limit: int,
         document_size: int,
@@ -139,7 +139,7 @@ class TelegramFilesSource:
         # if random() > 0.9:
         #     raise FileReferenceExpiredError(None)
 
-        async for chunk in self.client.iter_download(
+        async for chunk in self._client.iter_download(
             input_location,
             offset=ranges[0],
             request_size=request_size,
@@ -154,14 +154,13 @@ class TelegramFilesSource:
     async def _item_read_function(
         self,
         message: MessageDownloadable,
-        # item: SourceItem,
         offset: int,
         limit: int,
     ) -> bytes:
-        item = get_filesource_item(message)
+        item = self.get_filesource_item(message)
 
         logger.debug(
-            f"TelegramFilesSource._item_read_function(Message(id={message.id},chat_id={message.chat_id}), item(name={message.file.name}, id={item.id}, offset={offset}, limit={limit})"  # type: ignore
+            f"TelegramFilesSource._item_read_function(Message(id={message.id},chat_id={message.chat_id}), item(name={message.file.name}, id={item.id}, offset={offset}, limit={limit})"
         )
 
         input_location = await self._get_item_input_location(item)
@@ -172,21 +171,21 @@ class TelegramFilesSource:
                 offset,
                 limit,
                 item.size,
-                request_size=self.request_size,
+                request_size=self._request_size,
             )
         except FileReferenceExpiredError:
             logger.warning(
                 f"FileReferenceExpiredError was caught. file_reference for msg={item.id} needs refetching"
             )
 
-            input_location = await self._update_item_file_reference(message)
+            input_location = await self._refetch_item_file_reference(message)
 
             chunk = await self._retrieve_file_chunk(
                 input_location,
                 offset,
                 limit,
                 item.size,
-                request_size=self.request_size,
+                request_size=self._request_size,
             )
 
         logger.debug(
