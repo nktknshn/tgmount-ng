@@ -17,16 +17,6 @@ from .util import (
 )
 
 
-# from tgmount.vfs import DirContentItem, DirLike, FileLike
-
-# XXX
-# try:
-#     import faulthandler
-# except ImportError:
-#     pass
-# else:
-#     faulthandler.enable()
-
 """ 
 TODO
 lookup coconut
@@ -190,7 +180,7 @@ class FileSystemOperations(pyfuse3.Operations, FileSystemOperationsMixin):
     def _create_attributes_for_item(
         self,
         item: vfs.DirContentItem,
-        inode: int,
+        inode: int | None,
     ):
         if isinstance(item, vfs.DirLike):
             return create_directory_attributes(
@@ -474,21 +464,35 @@ class FileSystemOperations(pyfuse3.Operations, FileSystemOperationsMixin):
 
         handle = None
 
-        if flags & os.O_RDWR or flags & os.O_WRONLY:
-            self.logger.error("open(): readonly")
-            raise pyfuse3.FUSEError(errno.EPERM)
-
         item = self._inodes.get_item_by_inode(inode)
 
         if item is None:
             self.logger.error(f"open({inode}) missing inode")
             raise pyfuse3.FUSEError(errno.ENOENT)
 
-        self.logger.debug(f"= open({inode}) = {item.data.structure_item.name}")
-
         if not vfs.FileLike.guard(item.data.structure_item):
             self.logger.error(f"open({inode}): is not file")
             raise pyfuse3.FUSEError(errno.EIO)
+
+        # if flags & os.O_RDWR or flags & os.O_WRONLY:
+
+        # parent_dir = self.inodes.get_parent(inode)
+
+        # if parent_dir is None:
+        #     self.logger.error("open(): missing parent")
+        #     raise pyfuse3.FUSEError(errno.EIO)
+
+        # if not vfs.DirLike.guard(parent_dir.data.structure_item):
+        #     self.logger.error("open(): parent is not a folder")
+        #     raise pyfuse3.FUSEError(errno.EIO)
+
+        # parent_dir.data.structure_item.writable
+
+        if flags & os.O_RDWR or flags & os.O_WRONLY:
+            self.logger.error("open(): readonly")
+            raise pyfuse3.FUSEError(errno.EPERM)
+
+        self.logger.debug(f"= open({inode}) = {item.data.structure_item.name}")
 
         handle = await item.data.structure_item.content.open_func()
 

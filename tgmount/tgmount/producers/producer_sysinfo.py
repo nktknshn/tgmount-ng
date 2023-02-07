@@ -18,7 +18,7 @@ def encode(s: str):
     return s.encode("utf-8")
 
 
-class SysInfoCaches(vfs.FileContentString):
+class SysInfoCaches(vfs.FileContentStringProto):
     """fuse doesn't support reading empty files like procfs"""
 
     size = 666666
@@ -26,7 +26,7 @@ class SysInfoCaches(vfs.FileContentString):
     def __init__(self, caches: CacheFileFactoryFactory) -> None:
         self._caches = caches
 
-    async def read(self, handle: Any) -> str:
+    async def get_string(self, handle: Any) -> str:
 
         result = ""
 
@@ -59,14 +59,14 @@ class SysInfoCaches(vfs.FileContentString):
 from tgmount import fs
 
 
-class SysInfoFileSystem(vfs.FileContentString):
+class SysInfoFileSystem(vfs.FileContentStringProto):
     size = 666666
 
     def __init__(self, get_fs: Callable[[], fs.FileSystemOperations]) -> None:
         super().__init__()
         self._get_fs = get_fs
 
-    async def read(self, handle: Any) -> str:
+    async def get_string(self, handle: Any) -> str:
         result = ""
         inodes = self._get_fs().inodes.get_inodes()
 

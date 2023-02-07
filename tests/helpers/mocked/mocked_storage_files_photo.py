@@ -1,18 +1,10 @@
-from copy import copy, deepcopy
+from copy import deepcopy
 from dataclasses import dataclass
 
-from tgmount.tgclient.guards import MessageDownloadable
-from tgmount.tgclient.message_types import (
-    DocumentProto,
-    PhotoProto,
-    PhotoSizeProto,
-    PhotoSizeProtoBasic,
-)
-from tgmount.util import none_fallback, random_int, yes
+from tgmount.tgclient.message_types import PhotoSizeProto, PhotoSizeProtoBasic
+from tgmount.util import none_fallback
 
-from .mocked_message import (
-    MockedPhoto,
-)
+from .mocked_message import MockedPhoto
 
 
 @dataclass

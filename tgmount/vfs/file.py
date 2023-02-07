@@ -15,7 +15,8 @@ from tgmount.vfs.types.file import (
     FileContent,
     FileContentProto,
     FileLike,
-    FileContentString,
+    FileContentStringProto,
+    FileContentStringWritable,
 )
 from tgmount.vfs.util import MyLock
 

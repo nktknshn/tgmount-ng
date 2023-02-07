@@ -6,6 +6,8 @@ from .dir import (
     DirLike,
     dir_content,
     vdir,
+    DirContentProtoWritable,
+    DirContentListWritable,
 )
 from .dir_util import (
     dir_content_from_fs,
@@ -31,7 +33,8 @@ from .file import (
     vfile,
     file_content_from_bytes,
     file_content,
-    FileContentString,
+    FileContentStringProto,
+    FileContentStringWritable,
 )
 
 from .lookup import dirlike_ls as ls, dirlike_get_by_path_list

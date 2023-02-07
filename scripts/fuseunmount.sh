@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MOUNTS=$(mount | grep "test_tgmount on" | cut -d' ' -f3)
+MOUNTS=$(mount | grep "tgmount_test_fs on" | cut -d' ' -f3)
 
 if [[ "$MOUNTS" == "" ]]; then
     echo no test_tgmount mounts

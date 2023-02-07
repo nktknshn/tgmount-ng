@@ -45,6 +45,7 @@ async def mount_ops(
     mount_dir: str,
     min_tasks: int,
     debug=False,
+    fsname: str = "tgmount_fs",
 ):
     logger.debug("mount_ops()")
 
@@ -52,7 +53,7 @@ async def mount_ops(
     # pyfuse3.setxattr(mount_dir, "fuse_stacktrace", b"1")
 
     fuse_options = set(pyfuse3.default_options)
-    fuse_options.add("fsname=test_tgmount")
+    fuse_options.add(f"fsname={fsname}")
 
     if debug:
         fuse_options.add("debug")

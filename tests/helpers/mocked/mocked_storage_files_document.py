@@ -2,13 +2,9 @@ from copy import deepcopy
 
 from telethon import types
 
-
 from tgmount.util import none_fallback
 
-from .mocked_message import (
-    MockedDocument,
-    MockedPhoto,
-)
+from .mocked_message import MockedDocument
 
 EntityId = str
 

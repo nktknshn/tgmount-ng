@@ -1,20 +1,23 @@
 from collections.abc import Callable
 from dataclasses import dataclass
 import logging
-from typing import Mapping, Optional
+from typing import Mapping, Optional, TypeGuard
 import pytest
 import pytest_asyncio
-from telethon.utils import re
+from tests.helpers.mocked.mocked_message import (
+    MockedMessageWithDocument,
+    MockedMessageWithPhoto,
+)
 
-from tgmount.tgclient import TelegramFilesSource, files_source, DocId
+from tgmount.tgclient import TelegramFilesSource, DocId
 
-from telethon.errors import FileReferenceExpiredError
 from tgmount.tgclient.client_types import TgmountTelegramClientReaderProto
 from tgmount.tgclient.guards import MessageDownloadable
+from tgmount.tgclient.message_types import MessageProto
 from tgmount.tgclient.source.document import get_document_input_location
 from tgmount.tgclient.source.item import FileSourceItem
 from tgmount.tgclient.source.photo import get_photo_input_location
-from tgmount.tgclient.types import InputPhotoFileLocation, TypeInputFileLocation
+from tgmount.tgclient.types import TypeInputFileLocation
 from tgmount.util import yes
 
 from tgmount.vfs.file import read_file_content_bytes
@@ -51,6 +54,11 @@ class MockedFileSource(TelegramFilesSource):
         self, client: TgmountTelegramClientReaderProto, request_size: int | None = None
     ) -> None:
         super().__init__(client, request_size)
+
+    def is_message_downloadable(
+        self, message: MessageProto
+    ) -> TypeGuard[MessageDownloadable]:
+        return bool(yes(message.document)) or bool(yes(message.photo))
 
     def get_filesource_item(self, message: MessageDownloadable) -> FileSourceItem:
         if yes(message.document):
@@ -98,6 +106,7 @@ async def test_file_reference_document(
     )
 
     storage.set_file_reference(msg0.document.id, random_file_reference())
+    # print(msg0.document.file_reference)
 
     assert await read_file_content_bytes(msg0_content) == await files.get_file_bytes(
         files.Hummingbird

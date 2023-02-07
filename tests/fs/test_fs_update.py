@@ -11,9 +11,11 @@ from tgmount.tglog import init_logging
 from tgmount.util import none_fallback
 
 from ..helpers.fixtures_common import mnt_dir
-from ..helpers.spawn import GetProps, OnEventCallbackSet, spawn_fs_ops
 
-Main1Props = TypedDict("Main1Props", debug=int, ev0=threading.Event)
+# from ..helpers.spawn import GetProps, OnEventCallbackSet, spawn_fs_ops
+# Main1Props = TypedDict("Main1Props", debug=int, ev0=threading.Event)
+
+from .helpers import Context
 
 dirc = vfs.dir_content_from_source
 root = vfs.root
@@ -36,16 +38,10 @@ def async_lambda(f):
     return _inner
 
 
-@pytest.mark.skip
 @pytest.mark.asyncio
-async def test_fs1(mnt_dir, caplog):
-
-    # caplog.set_level(logging.DEBUG)
-
-    get_props: GetProps[Main1Props] = lambda ctx: {
-        "debug": logging.CRITICAL,
-        "ev0": ctx.mgr.Event(),
-    }
+async def test_fs_rename_filelikes(mnt_dir, caplog):
+    ctx = Context(mnt_dir, caplog)
+    # ctx.debug = logging.DEBUG
 
     root1 = vfs.root(
         vfs.dir_content_from_source(
@@ -58,51 +54,50 @@ async def test_fs1(mnt_dir, caplog):
         )
     )
 
-    async def main1(
-        props: Main1Props,
-        on_event: OnEventCallbackSet,
-    ):
-        init_logging(props["debug"])
+    fs1 = fs.FileSystemOperationsUpdatable(root1)
 
-        fs1 = fs.FileSystemOperationsUpdatable(root1)
+    async def test():
+        assert await ctx.listdir_set("subf") == {"aaa", "bbb"}
 
-        async def update():
-            await fs1.update(
-                fs.FileSystemOperationsUpdate(
-                    removed_files=[
-                        "/subf/aaa",
-                        "/subf/bbb",
-                    ],
-                    new_files={
-                        "/subf/ccc": vfs.text_file("ccc", "ccc content"),
-                    },
-                )
+        assert await ctx.read_text("subf/aaa") == "aaaaaaa"
+
+        assert (await ctx.stat("subf/aaa")).st_size == 7
+
+        await fs1.update(
+            fs.FileSystemOperationsUpdate(
+                update_items={
+                    "/subf/aaa": vfs.FileLike("aaa", vfs.text_content("!!!")),
+                    "/subf/bbb": vfs.FileLike("ccc", vfs.text_content("###")),
+                }
             )
-
-        on_event(props["ev0"], update)
-
-        return fs1
-
-    for ctx in spawn_fs_ops(main1, get_props, mnt_dir=mnt_dir, min_tasks=10):
-        s = os.stat(ctx.tmpdir)
-
-        assert os.listdir(ctx.path("subf")) == ["aaa", "bbb"]
-        assert ctx.props
-
-        ctx.props["ev0"].set()
+        )
 
         # await asyncio.sleep(1)
 
-        assert os.listdir(ctx.path("subf")) == ["ccc"]
+        assert await ctx.listdir_set("subf") == {"aaa", "ccc"}
+
+        assert (await ctx.stat("subf/aaa")).st_size == 3
+
+        assert await ctx.read_text("subf/aaa") == "!!!"
+
+        with pytest.raises(FileNotFoundError):
+            s = await ctx.stat("subf/bbb")
+            print(s)
+
+        assert (await ctx.stat("subf/ccc")).st_size == 3
+
+        assert await ctx.read_text("subf/ccc") == "###"
+
+        assert (await ctx.stat("subf/aaa")).st_ctime_ns < (
+            await ctx.stat("subf/aaa")
+        ).st_mtime_ns
+
+    await ctx.run_test(lambda: fs1, test)
 
 
-@pytest.mark.skip
 @pytest.mark.asyncio
-async def test_fs_rename_filelikes(mnt_dir, caplog):
-    get_props = lambda ctx: {
-        "debug": logging.DEBUG,
-        "ev0": ctx.mgr.Event(),
-    }
+async def test_fs1(mnt_dir, caplog):
+    ctx = Context(mnt_dir)
 
     root1 = vfs.root(
         vfs.dir_content_from_source(
@@ -115,58 +110,23 @@ async def test_fs_rename_filelikes(mnt_dir, caplog):
         )
     )
 
-    async def main1(
-        props: Main1Props,
-        on_event: OnEventCallbackSet,
-    ):
-        init_logging(props["debug"])
+    fs1 = fs.FileSystemOperationsUpdatable(root1)
 
-        fs1 = fs.FileSystemOperationsUpdatable(root1)
+    async def test():
+        assert await ctx.listdir_set("subf") == {"aaa", "bbb"}
 
-        async def update():
-            await fs1.update(
-                fs.FileSystemOperationsUpdate(
-                    update_items={
-                        "/subf/aaa": vfs.FileLike("aaa", vfs.text_content("!!!")),
-                        "/subf/bbb": vfs.FileLike("ccc", vfs.text_content("###")),
-                    }
-                )
+        await fs1.update(
+            fs.FileSystemOperationsUpdate(
+                removed_files=[
+                    "/subf/aaa",
+                    "/subf/bbb",
+                ],
+                new_files={
+                    "/subf/ccc": vfs.text_file("ccc", "ccc content"),
+                },
             )
-
-        on_event(props["ev0"], update)
-
-        return fs1
-
-    for ctx in spawn_fs_ops(main1, get_props, mnt_dir=mnt_dir, min_tasks=10):
-
-        assert os.listdir(ctx.path("subf")) == ["aaa", "bbb"]
-        assert ctx.props
-
-        with open(ctx.path("subf/aaa"), "r") as f:
-            assert f.read() == "aaaaaaa"
-
-        assert os.stat(ctx.path("subf/aaa")).st_size == 7
-
-        ctx.props["ev0"].set()
-
-        await asyncio.sleep(0.1)
-
-        assert os.listdir(ctx.path("subf")) == ["aaa", "ccc"]
-
-        assert os.stat(ctx.path("subf/aaa")).st_size == 3
-
-        with open(ctx.path("subf/aaa"), "r") as f:
-            assert f.read() == "!!!"
-
-        with pytest.raises(FileNotFoundError):
-            assert os.stat(ctx.path("subf/bbb")).st_size == 3
-
-        assert os.stat(ctx.path("subf/ccc")).st_size == 3
-
-        with open(ctx.path("subf/ccc"), "r") as f:
-            assert f.read() == "###"
-
-        assert (
-            os.stat(ctx.path("subf/aaa")).st_ctime_ns
-            < os.stat(ctx.path("subf/aaa")).st_mtime_ns
         )
+
+        assert await ctx.listdir_set("subf") == {"ccc"}
+
+    await ctx.run_test(lambda: fs1, test)

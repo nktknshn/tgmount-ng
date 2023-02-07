@@ -1,4 +1,4 @@
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
 from typing import (
@@ -8,12 +8,13 @@ from typing import (
     Iterable,
     Optional,
     Protocol,
+    Sequence,
     TypeGuard,
     TypeVar,
     Union,
 )
 
-from tgmount.vfs.types.file import FileLike
+from tgmount.vfs.types.file import FileLike, FileContentProtoWritable
 
 T = TypeVar("T")
 
@@ -33,19 +34,29 @@ class DirContentProto(Protocol[T]):
 
     @abstractmethod
     async def readdir_func(self, handle: T, off: int) -> Iterable[DirContentItem]:
-        ...
+        pass
 
     @abstractmethod
     async def opendir_func(self) -> T:
-        ...
+        pass
 
     @abstractmethod
     async def releasedir_func(self, handle: T):
-        ...
+        pass
 
     @staticmethod
     def guard(item: Any) -> TypeGuard["DirContentProto[Any]"]:
         return hasattr(item, "readdir_func")
+
+
+class DirContentProtoWritable(DirContentProto[T], Protocol[T]):
+    @abstractmethod
+    async def create(self, filename: str) -> FileLike:
+        pass
+
+    @staticmethod
+    def guard(dc: DirContentProto) -> TypeGuard["DirContentProtoWritable"]:
+        return hasattr(dc, "create")
 
 
 @dataclass
@@ -58,6 +69,8 @@ class DirLike:
     creation_time: datetime = datetime.now()
 
     extra: Optional[Any] = None
+
+    writable: bool = False
 
     @staticmethod
     def guard(item: Any) -> TypeGuard["DirLike"]:
@@ -92,8 +105,8 @@ class DirContent(DirContentProto[T]):
 class DirContentList(DirContentProto[list[DirContentItem]]):
     """Immutable dir content sourced from a list of `DirContentItem`"""
 
-    def __init__(self, content_list: list[DirContentItem]):
-        self.content_list = content_list
+    def __init__(self, content_list: Sequence[DirContentItem]):
+        self.content_list = list(content_list)
 
     async def opendir_func(self) -> list[DirContentItem]:
         return self.content_list[:]
@@ -105,3 +118,14 @@ class DirContentList(DirContentProto[list[DirContentItem]]):
         self, handle: list[DirContentItem], off: int
     ) -> Iterable[DirContentItem]:
         return handle[off:]
+
+
+class DirContentListWritable(DirContentList, DirContentProtoWritable):
+    @abstractmethod
+    async def create_filelike(self, filename: str) -> FileLike:
+        pass
+
+    async def create(self, filename: str) -> FileLike:
+        fl = await self.create_filelike(filename)
+        self.content_list.append(fl)
+        return fl

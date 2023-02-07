@@ -52,7 +52,7 @@ class MockedDocument(DocumentProto):
 
 
 @dataclass
-class MockedPhoto(telethon.types.Photo, PhotoProto):
+class MockedPhoto(PhotoProto):
     id: int = field(default_factory=random_int(100000))
     access_hash: int = field(default_factory=random_int(100000))
     sizes: list[PhotoSizeProto] = field(default_factory=list)

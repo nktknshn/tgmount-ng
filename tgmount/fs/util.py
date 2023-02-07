@@ -69,7 +69,7 @@ def create_file_attributes(
 
 def create_directory_attributes(
     # inode: int,
-    inode: int,
+    inode: int | None,
     perms=0o755,
     stamp: int = int(1438467123.985654 * 1e9),
 ):

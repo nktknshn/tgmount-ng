@@ -13,7 +13,6 @@ from tgmount.tgmount.tgmount_builder import TgmountBuilder
 from ..helpers.spawn import spawn_fs_ops
 from .fixtures import *
 from ..helpers.fixtures_tgclient import tgclient_second
-from .helpers import async_listdir
 
 TESTING_CHANNEL = "tgmounttestingchannel"
 

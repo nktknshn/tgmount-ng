@@ -35,32 +35,6 @@ async def concurrently(coro1: Coroutine, coro2: Coroutine):
     return res1.result(), res2.result()
 
 
-async_listdir = aiofiles.os.listdir  # type:ignore
-
-
-async def async_walkdir(
-    path: str,
-) -> AsyncGenerator[tuple[str, list[str], list[str]], None]:
-    # item: os.DirEntry
-    subdirs: list[str] = []
-    subfiles: list[str] = []
-
-    for subitem in await aiofiles.os.listdir(path):  # type:ignore
-        subitem_path = os.path.join(path, subitem)
-
-        if await aiofiles.os.path.isdir(subitem_path):
-            subdirs.append(subitem_path)
-        elif await aiofiles.os.path.isfile(subitem_path):
-            subfiles.append(subitem_path)
-
-    yield path, subdirs, subfiles
-
-    for subdir in subdirs:
-        dir_iter = async_walkdir(subdir)
-        async for res in dir_iter:
-            yield res
-
-
 class mdict:
     def __init__(self, root: Mapping) -> None:
         self._root: dict = copy.deepcopy(dict(root))

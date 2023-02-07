@@ -23,6 +23,8 @@ class FileLike:
     extra: Optional[Any] = None
     """ Any extra data attached to the FileLike  """
 
+    writable: bool = False
+
     @staticmethod
     def guard(item: Any) -> TypeGuard["FileLike"]:
         return isinstance(item, FileLike)
@@ -34,7 +36,7 @@ class FileLike:
 T = TypeVar("T")
 
 
-class FileContentProto(Protocol, Generic[T]):
+class FileContentProto(Protocol[T]):
     """
     Abstract source of file content
     """
@@ -75,16 +77,16 @@ def async_constant(v):
     return _inner
 
 
-class FileContentString(FileContentProto):
+class FileContentStringProto(FileContentProto):
     size: int
     encoding = "utf-8"
 
     @abstractmethod
-    async def read(self, handle) -> str:
+    async def get_string(self, handle) -> str:
         pass
 
     async def read_func(self, handle, off: int, size: int) -> bytes:
-        content = await self.read(handle)
+        content = await self.get_string(handle)
 
         return content.encode(self.encoding)[off : off + size]
 
@@ -133,10 +135,49 @@ class FileContent(FileContentProto):
     async def seek_func(self, handle, n: int, w: int):
         return await self._seek_func(handle, n, w)
 
-    # async def tell_func(self, handle):
-    #     return await self._tell_func(handle)
-
     # XXX
 
     def __repr__(self):
         return f"FileContent(size={self.size})"
+
+
+class FileContentProtoWritable(FileContentProto[T], Protocol):
+    @abstractmethod
+    async def write(self, handle: T, off: int, buf: bytes):
+        pass
+
+    @staticmethod
+    def guard(fc: FileContentProto) -> TypeGuard["FileContentProtoWritable"]:
+        return hasattr(fc, "write")
+
+
+class FileContentStringWritable(FileContentProtoWritable):
+    size: int
+    encoding = "utf-8"
+
+    def __init__(self, content_string="") -> None:
+        self._content_bytes = content_string.encode(self.encoding)
+
+    async def seek_func(self, handle, n: int, w: int):
+        raise NotImplementedError()
+
+    tell_func: Optional[Callable[[Any], Awaitable[int]]] = None
+
+    async def open_func(self) -> None:
+        return
+
+    async def close_func(self, handle):
+        return
+
+    async def read_func(self, handle, off: int, size: int) -> bytes:
+        return self._content_bytes[off : off + size]
+
+    async def write(self, handle: None, off: int, buf: bytes):
+        content_bytes = bytearray(self._content_bytes)
+
+        for idx, b in enumerate(buf):
+            content_bytes[off + idx] = b
+
+        self._content_bytes = bytes(content_bytes)
+
+        return len(buf)

@@ -8,6 +8,8 @@ from .types.dir import (
     DirContentList,
     DirContentProto,
     DirLike,
+    DirContentProtoWritable,
+    DirContentListWritable,
 )
 
 

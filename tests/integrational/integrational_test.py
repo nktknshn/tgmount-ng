@@ -5,6 +5,7 @@ from os import stat_result
 from typing import Any, AsyncGenerator, Iterable, Mapping
 
 import aiofiles
+from tests.helpers.mount_context import MountContext
 
 import tgmount.config as config
 from tests.helpers.mocked.mocked_storage import EntityId, MockedTelegramStorage
@@ -23,7 +24,6 @@ from tgmount.util import none_fallback
 from ..helpers.fixtures_common import mnt_dir
 from ..helpers.mocked.mocked_client import MockedClientReader, MockedClientWriter
 from ..logger import logger as _logger
-from .helpers import async_listdir, async_walkdir
 
 
 class MockedVfsTreeProducer(VfsTreeProducer):
@@ -134,7 +134,7 @@ async def _run_test(
     )
 
 
-class TgmountIntegrationContext:
+class TgmountIntegrationContext(MountContext):
     MockedTelegramStorage = MockedTelegramStorage
     MockedClientWriter = MockedClientWriter
 
@@ -147,7 +147,7 @@ class TgmountIntegrationContext:
         config_parser: ConfigRootParserProto = ConfigParser(),
     ) -> None:
         self._mnt_dir = mnt_dir
-        self._caplog = caplog
+        self.caplog = caplog
 
         self._default_config = none_fallback(
             default_config, create_config(config_reader=config_parser)
@@ -158,25 +158,25 @@ class TgmountIntegrationContext:
         self._debug = False
         self.main_function = main_function
 
-    @property
-    def debug(self):
-        return self._debug
+    # @property
+    # def debug(self):
+    #     return self._debug
 
-    @debug.setter
-    def debug(self, value):
-        logging_level = (
-            logging.DEBUG
-            if value is True
-            else logging.ERROR
-            if value is False
-            else value
-        )
-        self._debug = logging_level
+    # @debug.setter
+    # def debug(self, value):
+    #     logging_level = (
+    #         logging.DEBUG
+    #         if value is True
+    #         else logging.ERROR
+    #         if value is False
+    #         else value
+    #     )
+    #     self._debug = logging_level
 
-        tglog.init_logging(logging_level)
+    #     tglog.init_logging(logging_level)
 
-        if self._caplog is not None:
-            self._caplog.set_level(self._debug)
+    #     if self._caplog is not None:
+    #         self._caplog.set_level(self._debug)
 
     @property
     def storage(self):
@@ -201,55 +201,6 @@ class TgmountIntegrationContext:
 
     def create_client(self):
         return self.MockedClientWriter(storage=self._storage)
-
-    def _path(self, *path: str) -> str:
-        return vfs.path_join(self._mnt_dir, *path)
-
-    async def listdir(self, *path: str, full_path=False) -> list[str]:
-
-        return [
-            vfs.path_join(*path, f) if full_path else f
-            for f in await async_listdir(self._path(*path))
-        ]
-
-    async def listdir_len(self, *path: str) -> int:
-        return len(await self.listdir(*path))
-
-    async def listdir_set(self, *path: str, full_path=False) -> set[str]:
-        return set(await self.listdir(*path, full_path=full_path))
-
-    def walkdir(
-        self, *path: str
-    ) -> AsyncGenerator[tuple[str, list[str], list[str]], None]:
-        return async_walkdir(self._path(*path))
-
-    async def listdir_recursive(self, path: str) -> set[str]:
-        res = []
-
-        for dirpath, dirnames, filenames in await async_walkdir(path):  # type: ignore
-            res.append(dirpath)
-            res.extend([vfs.path_join(str(dirpath), str(fn)) for fn in filenames])
-
-        return set(res)
-
-    async def stat(self, path: str) -> stat_result:
-        return await aiofiles.os.stat(self._path(path))
-
-    async def read_text(self, path: str) -> str:
-        async with aiofiles.open(self._path(path), "r") as f:
-            return await f.read()
-
-    async def read_bytes(self, path: str) -> bytes:
-        async with aiofiles.open(self._path(path), "rb") as f:
-            return await f.read()
-
-    async def read_texts(self, paths: Iterable[str]) -> list[str] | set[str]:
-        res = []
-        for p in paths:
-            res.append(await self.read_text(p))
-        if isinstance(paths, set):
-            return set(res)
-        return res
 
     def get_root(self, root_cfg: Mapping) -> Mapping:
         return root_cfg
