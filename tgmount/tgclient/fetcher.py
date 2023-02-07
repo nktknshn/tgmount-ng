@@ -63,7 +63,6 @@ class TelegramMessagesFetcher(TelegramMessagesFetcherProto):
         return filt
 
     async def fetch(self):
-
         self.logger.debug(f"fetching {self.cfg}")
 
         filt = None

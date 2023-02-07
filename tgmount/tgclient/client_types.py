@@ -1,7 +1,9 @@
 from abc import abstractmethod
-from typing import Awaitable, Callable, Protocol
+from typing import Any, Awaitable, Callable, Protocol, Sequence, TypeVar
 
 from telethon import events
+from tgmount.tgclient.events_disptacher import EntityId
+from tgmount.tgclient.guards import MessageDownloadable
 
 from tgmount.tgclient.message_reaction_event import MessageReactionEvent
 from tgmount.tgclient.message_types import MessageProto
@@ -13,6 +15,8 @@ ListenerRemovedMessages = Callable[[events.MessageDeleted.Event], Awaitable[None
 ListenerEditedMessage = Callable[
     [events.MessageEdited.Event | MessageReactionEvent], Awaitable[None]
 ]
+
+T = TypeVar("T")
 
 
 class TgmountTelegramClientEventProto(Protocol):
@@ -60,6 +64,51 @@ class TgmountTelegramClientIterDownloadProto(Protocol):
         limit: int,
         file_size: int,
     ) -> IterDownloadProto:
+        pass
+
+
+class TgmountTelegramClientSendFileProto(Protocol):
+    """async def send_file(
+    self: 'TelegramClient',
+    entity: 'hints.EntityLike',
+    file: 'typing.Union[hints.FileLike, typing.Sequence[hints.FileLike]]',
+    *,
+    caption: typing.Union[str, typing.Sequence[str]] = None,
+    force_document: bool = False,
+    file_size: int = None,
+    clear_draft: bool = False,
+    progress_callback: 'hints.ProgressCallback' = None,
+    reply_to: 'hints.MessageIDLike' = None,
+    attributes: 'typing.Sequence[types.TypeDocumentAttribute]' = None,
+    thumb: 'hints.FileLike' = None,
+    allow_cache: bool = True,
+    parse_mode: str = (),
+    formatting_entities: typing.Optional[typing.List[types.TypeMessageEntity]] = None,
+    voice_note: bool = False,
+    video_note: bool = False,
+    buttons: typing.Optional['hints.MarkupLike'] = None,
+    silent: bool = None,
+    background: bool = None,
+    supports_streaming: bool = False,
+    schedule: 'hints.DateLike' = None,
+    comment_to: 'typing.Union[int, types.Message]' = None,
+    ttl: int = None,
+    **kwargs) -> 'types.Message':"""
+
+    @abstractmethod
+    async def send_file(
+        self,
+        entity: EntityId,
+        file: bytes,
+        *,
+        force_document: bool = False,
+        file_size: int | None = None,
+        progress_callback: Callable[[int, int], None] | None = None,
+        #     attributes: 'typing.Sequence[types.TypeDocumentAttribute]' = None,
+        attributes: Sequence[Any] | None = None,
+        background: bool | None = None,
+        supports_streaming: bool = False,
+    ) -> MessageDownloadable:
         pass
 
 

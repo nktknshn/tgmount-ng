@@ -4,6 +4,7 @@ import logging
 from typing import Sequence
 import aiofiles
 import pytest
+from tests.integrational.fixtures import FixtureFiles, files
 
 from tgmount import vfs
 from tgmount.fs import FileSystemOperations, FileSystemOperationsWritable
@@ -41,7 +42,7 @@ async def test_FileContentStringWritable(mnt_dir: str, caplog):
 
 
 @pytest.mark.asyncio
-async def test_fs_operations1(mnt_dir: str, caplog):
+async def test_fs_operations1(mnt_dir: str, caplog, files: FixtureFiles):
     ctx = Context(mnt_dir, caplog)
     ctx.init_logging(logging.DEBUG, debug_fs_ops=True)
 
@@ -84,5 +85,27 @@ async def test_fs_operations1(mnt_dir: str, caplog):
         assert (await ctx.stat("/dir1/file2.txt")).st_size == 5
 
         assert await ctx.read_text("/dir1/file2.txt") == "HELLO"
+
+        await asyncio.create_subprocess_shell(
+            f"cp {files.zip_debrecen} {ctx.path('/')}",
+        )
+
+    await ctx.run_test(lambda: fs1, test)
+
+
+@pytest.mark.asyncio
+async def test_fs_operations2(mnt_dir: str, caplog, files: FixtureFiles):
+    ctx = Context(mnt_dir, caplog)
+    ctx.init_logging(logging.DEBUG, debug_fs_ops=True)
+    fs1 = FileSystemOperationsWritable(vfs.root(DirContentTest([])))
+
+    async def test():
+        await asyncio.create_subprocess_shell(
+            f"cp '{files.file_10mb}' {ctx.path('/')}",
+        )
+
+        await asyncio.sleep(3.0)
+
+        assert await ctx.listdir("/") == ["file_10mb"]
 
     await ctx.run_test(lambda: fs1, test)

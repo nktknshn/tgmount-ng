@@ -68,6 +68,7 @@ async def main_function(
     debug: int,
     storage: MockedTelegramStorage,
     builder_klass=MockedTgmountBuilderBase,
+    shared: dict,
 ):
     test_logger = _logger.getChild("intergrational")
     test_logger.setLevel(debug)
@@ -94,6 +95,10 @@ async def main_function(
     await tgm.events_dispatcher.resume()
 
     test_logger.info("Mounting FS")
+
+    shared["builder"] = builder
+    shared["tgm"] = tgm
+    shared["fs"] = tgm.fs
 
     await mount_ops(
         tgm.fs,
@@ -133,6 +138,7 @@ async def _run_test(
     builder_klass=MockedTgmountBuilderBase,
     debug: int,
     main_function=main_function,
+    shared: dict,
 ):
     await run_test(
         main_function(
@@ -141,6 +147,7 @@ async def _run_test(
             storage=storage,
             debug=debug,
             builder_klass=builder_klass,
+            shared=shared,
         ),
         test_func(),
     )
@@ -170,26 +177,7 @@ class TgmountIntegrationContext(MountContext):
         self._client = self.create_client()
         self._debug = False
         self.main_function = main_function
-
-    # @property
-    # def debug(self):
-    #     return self._debug
-
-    # @debug.setter
-    # def debug(self, value):
-    #     logging_level = (
-    #         logging.DEBUG
-    #         if value is True
-    #         else logging.ERROR
-    #         if value is False
-    #         else value
-    #     )
-    #     self._debug = logging_level
-
-    #     tglog.init_logging(logging_level)
-
-    #     if self._caplog is not None:
-    #         self._caplog.set_level(self._debug)
+        self.shared = {}
 
     @property
     def storage(self):
@@ -228,6 +216,7 @@ class TgmountIntegrationContext(MountContext):
                 cfg=cfg,
                 storage=self.storage,
                 debug=debug,
+                shared=self.shared,
             )
         )
 
@@ -258,6 +247,7 @@ class TgmountIntegrationContext(MountContext):
             debug=self.debug,
             main_function=self.main_function,
             builder_klass=self.MockedTgmountBuilderBase,
+            shared=self.shared,
         )
         # self.debug = _debug
 

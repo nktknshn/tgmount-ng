@@ -67,6 +67,11 @@ class FixtureFiles:
     zip_linux2: FixtureFile
     zip_atrium: FixtureFile
 
+    file_1mb: str
+    file_5mb: str
+    file_10mb: str
+    file_100mb: str
+
     video0: str
     video1: str
 
@@ -81,6 +86,10 @@ class FixtureFiles:
 @pytest.fixture
 def files():
     return FixtureFiles(
+        file_1mb="tests/fixtures/files/file_1mb",
+        file_5mb="tests/fixtures/files/file_5mb",
+        file_10mb="tests/fixtures/files/file_10mb",
+        file_100mb="tests/fixtures/files/file_100mb",
         Hummingbird="tests/fixtures/files/pictures/Hummingbird.jpg",
         picture0="tests/fixtures/files/pictures/debrecen_001.jpg",
         picture1="tests/fixtures/files/pictures/debrecen_002.jpg",

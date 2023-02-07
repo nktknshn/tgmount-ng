@@ -41,6 +41,8 @@ class MountContext:
     def _path(self, *path: str) -> str:
         return vfs.path_join(self.mnt_dir, *path)
 
+    path = _path
+
     def init_logging(self, level: int, **kwargs):
         self.debug = level
         tglog.init_logging(level, **kwargs)
