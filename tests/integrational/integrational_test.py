@@ -67,8 +67,8 @@ async def main_function(
     cfg: config.Config,
     debug: int,
     storage: MockedTelegramStorage,
+    builder_klass=MockedTgmountBuilderBase,
 ):
-
     test_logger = _logger.getChild("intergrational")
     test_logger.setLevel(debug)
 
@@ -76,7 +76,7 @@ async def main_function(
     # logging.getLogger("telethon").setLevel(logging.ERROR)
 
     test_logger.info("Building...")
-    builder = MockedTgmountBuilderBase(storage=storage)
+    builder = builder_klass(storage=storage)
 
     test_logger.info("Creating resources...")
     tgm = await builder.create_tgmount(cfg)
@@ -95,7 +95,12 @@ async def main_function(
 
     test_logger.info("Mounting FS")
 
-    await mount_ops(tgm.fs, mount_dir=mnt_dir, min_tasks=10)
+    await mount_ops(
+        tgm.fs,
+        mount_dir=mnt_dir,
+        min_tasks=10,
+        fsname="tgmount_test_fs",
+    )
 
 
 async def run_test(mount_coro, test_coro):
@@ -125,11 +130,18 @@ async def _run_test(
     mnt_dir: str,
     cfg: config.Config,
     storage: MockedTelegramStorage,
+    builder_klass=MockedTgmountBuilderBase,
     debug: int,
     main_function=main_function,
 ):
     await run_test(
-        main_function(mnt_dir=mnt_dir, cfg=cfg, storage=storage, debug=debug),
+        main_function(
+            mnt_dir=mnt_dir,
+            cfg=cfg,
+            storage=storage,
+            debug=debug,
+            builder_klass=builder_klass,
+        ),
         test_func(),
     )
 
@@ -137,6 +149,7 @@ async def _run_test(
 class TgmountIntegrationContext(MountContext):
     MockedTelegramStorage = MockedTelegramStorage
     MockedClientWriter = MockedClientWriter
+    MockedTgmountBuilderBase = MockedTgmountBuilderBase
 
     def __init__(
         self,
@@ -223,10 +236,10 @@ class TgmountIntegrationContext(MountContext):
         test_func: Callable[[], Awaitable[Any]],
         # config_reader: ConfigRootParserProto,
         cfg_or_root: config.Config | DirConfig | Mapping | None = None,
-        debug=None,
+        # debug=None,
     ):
-        _debug = self.debug
-        self.debug = none_fallback(debug, self.debug)
+        # _debug = self.debug
+        # self.debug = none_fallback(debug, self.debug)
 
         if isinstance(cfg_or_root, Mapping):
             cfg_or_root = self.config_parser.parse_root(cfg_or_root)
@@ -244,8 +257,9 @@ class TgmountIntegrationContext(MountContext):
             storage=self.storage,
             debug=self.debug,
             main_function=self.main_function,
+            builder_klass=self.MockedTgmountBuilderBase,
         )
-        self.debug = _debug
+        # self.debug = _debug
 
     def _get_config(
         self,
@@ -266,7 +280,6 @@ class TgmountIntegrationContext(MountContext):
         self,
         cfg_or_root: config.Config | DirConfig | None = None,
     ) -> TgmountBase:
-
         builder = MockedTgmountBuilderBase(storage=self.storage)
         tgm = await builder.create_tgmount(self._get_config(cfg_or_root))
 

@@ -6,11 +6,17 @@ class get_client:
 
     TelegramClient = TgmountTelegramClient
 
-    def get_client(self, session: str, api_id: int, api_hash: str, loop=None):
-        return self.TelegramClient(session, api_id, api_hash, loop=loop)
+    def get_client(
+        self, session: str, api_id: int, api_hash: str, loop=None, use_ipv6=False
+    ):
+        return self.TelegramClient(
+            session, api_id, api_hash, loop=loop, use_ipv6=use_ipv6
+        )
 
-    def __init__(self, session, api_id, api_hash, loop=None):
-        self.client = self.get_client(session, api_id, api_hash, loop=loop)
+    def __init__(self, session, api_id, api_hash, loop=None, use_ipv6=False):
+        self.client = self.get_client(
+            session, api_id, api_hash, loop=loop, use_ipv6=use_ipv6
+        )
 
     async def __aenter__(self):
         await self.client.auth()

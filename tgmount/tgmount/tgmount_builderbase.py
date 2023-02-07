@@ -57,6 +57,7 @@ class TgmountBuilderBase(abc.ABC):
             cfg.client.session,
             cfg.client.api_id,
             cfg.client.api_hash,
+            use_ipv6=cfg.client.use_ipv6,
             **kwargs,
         )
 
@@ -102,7 +103,6 @@ class TgmountBuilderBase(abc.ABC):
         return self.TelegramMessagesFetcher(client, msc)
 
     async def create_tgmount_resources(self, client, cfg: config.Config, **kwargs):
-
         sources_used_in_root = await TgmountConfigReader().get_used_sources(cfg.root)
 
         files_source = await self.create_file_source(cfg, client)
@@ -178,7 +178,6 @@ class TgmountBuilderBase(abc.ABC):
         tgm.events_dispatcher = self.TelegramEventsDispatcher()
 
         for k, msc in cfg.message_sources.sources.items():
-
             ms = self.resources.message_sources.get(k)
 
             if ms is None:

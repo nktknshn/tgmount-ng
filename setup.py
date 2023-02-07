@@ -33,7 +33,7 @@ def main():
 
     setup(
         name="tgmount",
-        version="1.0.3",
+        version="1.0.4",
         description="Mount telegram messages as files",
         author="Nikita Kanashin",
         author_email="nikita@kanash.in",

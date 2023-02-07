@@ -31,6 +31,9 @@ async def async_walkdir(
             yield res
 
 
+OpenBinaryMode = Any
+
+
 class MountContext:
     mnt_dir: str
     caplog: Any
@@ -38,8 +41,11 @@ class MountContext:
     def _path(self, *path: str) -> str:
         return vfs.path_join(self.mnt_dir, *path)
 
-    async def listdir(self, *path: str, full_path=False) -> list[str]:
+    def init_logging(self, level: int, **kwargs):
+        self.debug = level
+        tglog.init_logging(level, **kwargs)
 
+    async def listdir(self, *path: str, full_path=False) -> list[str]:
         return [
             vfs.path_join(*path, f) if full_path else f
             for f in await async_listdir(self._path(*path))
@@ -67,6 +73,9 @@ class MountContext:
 
     async def stat(self, path: str) -> stat_result:
         return await os.stat(self._path(path))
+
+    async def open(self, path: str, *args):
+        return aiofiles.open(self._path(path), *args)
 
     async def read_text(self, path: str) -> str:
         async with aiofiles.open(self._path(path), "r") as f:

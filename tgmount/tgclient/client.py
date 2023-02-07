@@ -65,7 +65,6 @@ class TgmountTelegramClient(
         base_logger: Optional[typing.Union[str, logging.Logger]] = None,
         receive_updates: bool = True,
     ):
-
         super().__init__(
             session_user_id,
             api_id,
@@ -99,6 +98,8 @@ class TgmountTelegramClient(
             map_none_else(self.session, lambda s: s.filename, "No session"),
             suffix_as_tag=True,
         )
+
+        self.logger.debug(f"TgmountTelegramClient(use_ipv6={use_ipv6})")
 
         async def aprint(d):
             print(d)

@@ -137,6 +137,7 @@ async def mount(
             session=session,
             api_id=api_credentials[0],
             api_hash=api_credentials[1],
+            use_ipv6=args.use_ipv6,
         ),
         message_sources=config.MessageSources(
             sources={

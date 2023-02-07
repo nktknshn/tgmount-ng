@@ -84,6 +84,7 @@ class Client:
     api_id: int
     api_hash: str
     request_size: int | None = None
+    use_ipv6: bool = False
 
     @staticmethod
     def from_mapping(mapping: Mapping) -> "Client":

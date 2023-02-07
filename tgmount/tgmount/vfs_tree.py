@@ -148,7 +148,6 @@ class VfsTreeDir(VfsTreeDirMixin):
         await parent.child_updated(events)
 
     async def get_parent(self):
-
         if self.path == "/":
             return self._parent_tree
 
@@ -214,7 +213,6 @@ class VfsTreeDir(VfsTreeDirMixin):
         *,
         replace=False,
     ):
-
         if not isinstance(content, Sequence):
             content = [content]
 
@@ -299,7 +297,7 @@ class VfsTree(Subscribable, VfsTreeProto):
     The structure that holds the whole generated FS tree.
     Producers use it to read and write the structures they are responsible for.
 
-    Storing dirs in a single mappig we try to avoid recursivness.
+    Storing dirs in a single mapping we try to avoid recursiveness.
 
     Provides interface for accessing dirs and their contents by their global paths.
     """
@@ -505,7 +503,7 @@ class VfsTree(Subscribable, VfsTreeProto):
 
     async def get_dir_content(self, path: str = "/") -> VfsTreeDirContent:
         """Returns `VfsTreeDirContent`"""
-        return VfsTreeDirContent(self, path)
+        return self.VfsTreeDirContent(self, path)
 
     async def _get_dir_content(self, path: str) -> vfs.DirContentProto:
         """Method used by `VfsTreeDirContent` to construct `vfs.DirContentProto`"""

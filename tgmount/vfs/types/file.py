@@ -141,27 +141,26 @@ class FileContent(FileContentProto):
         return f"FileContent(size={self.size})"
 
 
-class FileContentProtoWritable(FileContentProto[T], Protocol):
+class FileContentWritableProto(FileContentProto[T], Protocol):
     @abstractmethod
     async def write(self, handle: T, off: int, buf: bytes):
         pass
 
     @staticmethod
-    def guard(fc: FileContentProto) -> TypeGuard["FileContentProtoWritable"]:
+    def guard(fc: FileContentProto) -> TypeGuard["FileContentWritableProto"]:
         return hasattr(fc, "write")
 
 
-class FileContentStringWritable(FileContentProtoWritable):
+class FileContentStringWritable(FileContentWritableProto):
     size: int
     encoding = "utf-8"
 
     def __init__(self, content_string="") -> None:
         self._content_bytes = content_string.encode(self.encoding)
+        self.size = len(self._content_bytes)
 
     async def seek_func(self, handle, n: int, w: int):
         raise NotImplementedError()
-
-    tell_func: Optional[Callable[[Any], Awaitable[int]]] = None
 
     async def open_func(self) -> None:
         return
@@ -174,10 +173,17 @@ class FileContentStringWritable(FileContentProtoWritable):
 
     async def write(self, handle: None, off: int, buf: bytes):
         content_bytes = bytearray(self._content_bytes)
+        content_bytes_len = len(content_bytes)
 
         for idx, b in enumerate(buf):
-            content_bytes[off + idx] = b
+            if off + idx >= content_bytes_len:
+                content_bytes.append(b)
+            else:
+                content_bytes[off + idx] = b
 
         self._content_bytes = bytes(content_bytes)
+        self.size = len(self._content_bytes)
 
         return len(buf)
+
+    tell_func: Optional[Callable[[Any], Awaitable[int]]] = None

@@ -36,6 +36,7 @@ async def mount_config(
     debug_fuse=False,
     run_server=False,
     min_tasks=10,
+    use_ipv6=False,
 ):
     builder = TgmountBuilder()
     validator = ConfigValidator(builder)
@@ -62,12 +63,6 @@ async def mount_config(
             cfg.client, api_id=api_credentials[0], api_hash=api_credentials[1]
         )
 
-    # if subfolder is not None:
-    #     subfolder_root = cfg.root.content.get(subfolder)
-
-    #     if subfolder_root is None:
-    #         raise TgmountError(f"Invalid subfolder")
-
     tgm = await builder.create_tgmount(cfg)
 
     try:
@@ -77,7 +72,7 @@ async def mount_config(
         # await tgm.client.disconnect()
         raise TgmountError(f"Error while authenticating the client: {e}")
 
-    if not tgm.client.is_connected():
+    if not tgm.client.is_connected():  # type: ignore
         raise TgmountError(
             f"Error while connecting the client. Check api_id and api_hash"
         )

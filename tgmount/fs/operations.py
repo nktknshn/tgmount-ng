@@ -14,6 +14,7 @@ from .util import (
     create_directory_attributes,
     create_file_attributes,
     exception_handler,
+    flags_to_str,
 )
 
 
@@ -58,7 +59,6 @@ class FileSystemOperationsMixin:
     def get_inodes_tree(
         self: "FileSystemOperations", inode=InodesRegistry.ROOT_INODE  # type: ignore
     ) -> InodesTree:
-
         item = self.inodes.get_item_by_inode(inode)
 
         if item is None:
@@ -105,7 +105,6 @@ from .logger import logger
 
 
 class FileSystemOperations(pyfuse3.Operations, FileSystemOperationsMixin):
-
     FsRegistryItem = RegistryItem[FileSystemItem] | RegistryRoot[FileSystemItem]
     logger = logger.getChild(f"FileSystemOperations")
 
@@ -196,7 +195,6 @@ class FileSystemOperations(pyfuse3.Operations, FileSystemOperationsMixin):
     def update_subitem(
         self, path: str, new_item: vfs.DirContentItem, parent_inode: int
     ):
-
         self.logger.debug(
             f"update_subitem: {new_item.name}, parent_inode={parent_inode} ({self.inodes.get_item_path(parent_inode)})"
         )
@@ -242,7 +240,6 @@ class FileSystemOperations(pyfuse3.Operations, FileSystemOperationsMixin):
         return item
 
     def add_subitem(self, vfs_item: vfs.DirContentItem, parent_inode: int):
-
         self.logger.debug(
             f"add_subitem: {vfs_item.name}, parent_inode={parent_inode} ({self.inodes.get_item_path(parent_inode)})"
         )
@@ -461,7 +458,6 @@ class FileSystemOperations(pyfuse3.Operations, FileSystemOperationsMixin):
     @measure_time(logger_func=logger.debug)
     @exception_handler
     async def open(self, inode, flags, ctx):
-
         handle = None
 
         item = self._inodes.get_item_by_inode(inode)
@@ -474,25 +470,14 @@ class FileSystemOperations(pyfuse3.Operations, FileSystemOperationsMixin):
             self.logger.error(f"open({inode}): is not file")
             raise pyfuse3.FUSEError(errno.EIO)
 
-        # if flags & os.O_RDWR or flags & os.O_WRONLY:
-
-        # parent_dir = self.inodes.get_parent(inode)
-
-        # if parent_dir is None:
-        #     self.logger.error("open(): missing parent")
-        #     raise pyfuse3.FUSEError(errno.EIO)
-
-        # if not vfs.DirLike.guard(parent_dir.data.structure_item):
-        #     self.logger.error("open(): parent is not a folder")
-        #     raise pyfuse3.FUSEError(errno.EIO)
-
         # parent_dir.data.structure_item.writable
+        self.logger.debug(
+            f"= open({inode}, flags={flags_to_str(flags)}) = {item.data.structure_item.name}"
+        )
 
         if flags & os.O_RDWR or flags & os.O_WRONLY:
             self.logger.error("open(): readonly")
             raise pyfuse3.FUSEError(errno.EPERM)
-
-        self.logger.debug(f"= open({inode}) = {item.data.structure_item.name}")
 
         handle = await item.data.structure_item.content.open_func()
 

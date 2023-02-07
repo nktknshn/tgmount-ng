@@ -28,11 +28,12 @@ def vfile(
     content: FileContentProto,
     creation_time: Optional[datetime] = None,
     extra: Optional[Any] = None,
+    writable=False,
 ):
     if creation_time is None:
         creation_time = datetime.now()
 
-    return FileLike(fname, content, creation_time, extra)
+    return FileLike(fname, content, creation_time, extra, writable)
 
 
 def file_content(

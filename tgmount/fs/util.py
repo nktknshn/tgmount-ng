@@ -135,3 +135,34 @@ def bytes_to_str(bs: bytes | list[bytes]) -> str | list[str]:
         return list(map(lambda b: b.decode("utf-8"), bs))
 
     return bs.decode("utf-8")
+
+
+""" 
+https://man7.org/linux/man-pages/man2/open.2.html
+"""
+open_flags = [
+    "O_RDWR",
+    "O_WRONLY",
+    "O_RDONLY",
+    "O_CLOEXEC",
+    "O_CREAT",
+    "O_DIRECTORY",
+    "O_EXCL",
+    "O_NOCTTY",
+    "O_NOFOLLOW",
+    "O_TMPFILE",
+    "O_TRUNC",
+    "O_DIRECT",
+]
+
+
+def flags_to_str(flags: int) -> str:
+    flags_strs = []
+
+    for f in open_flags:
+        flag = getattr(os, f)
+
+        if flags & flag:
+            flags_strs.append(f)
+
+    return ",".join(flags_strs)

@@ -14,7 +14,7 @@ from typing import (
     Union,
 )
 
-from tgmount.vfs.types.file import FileLike, FileContentProtoWritable
+from tgmount.vfs.types.file import FileLike, FileContentWritableProto
 
 T = TypeVar("T")
 
@@ -49,13 +49,13 @@ class DirContentProto(Protocol[T]):
         return hasattr(item, "readdir_func")
 
 
-class DirContentProtoWritable(DirContentProto[T], Protocol[T]):
+class DirContentWritableProto(DirContentProto[T], Protocol[T]):
     @abstractmethod
     async def create(self, filename: str) -> FileLike:
         pass
 
     @staticmethod
-    def guard(dc: DirContentProto) -> TypeGuard["DirContentProtoWritable"]:
+    def guard(dc: DirContentProto) -> TypeGuard["DirContentWritableProto"]:
         return hasattr(dc, "create")
 
 
@@ -120,7 +120,7 @@ class DirContentList(DirContentProto[list[DirContentItem]]):
         return handle[off:]
 
 
-class DirContentListWritable(DirContentList, DirContentProtoWritable):
+class DirContentListWritable(DirContentList, DirContentWritableProto):
     @abstractmethod
     async def create_filelike(self, filename: str) -> FileLike:
         pass

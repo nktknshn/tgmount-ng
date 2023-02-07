@@ -61,7 +61,6 @@ async def main_test1(props, _):
 
 @pytest.mark.asyncio
 async def _test_fs_tg_test1(mnt_dir, caplog):
-
     caplog.set_level(logging.DEBUG)
 
     amount = 512 * 1024
@@ -70,7 +69,6 @@ async def _test_fs_tg_test1(mnt_dir, caplog):
     bc1 = await f.read1(amount)
 
     for m in spawn_fs_ops(main_test1, {"debug": False}, mnt_dir=mnt_dir, min_tasks=10):
-
         subfiles = os.listdir(m.path("tmtc/"))
         assert len(subfiles) == 3
 

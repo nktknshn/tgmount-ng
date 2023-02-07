@@ -12,11 +12,17 @@ from tgmount import fs, vfs
 from tgmount.fs import FileSystemOperations
 from tgmount.main.util import mount_ops
 
+from tgmount import tglog
 from ..helpers.fixtures_common import mnt_dir
 
 
 async def main_function(*, ops: fs.FileSystemOperations, mnt_dir: str):
-    await mount_ops(ops, mount_dir=mnt_dir, min_tasks=10, fsname="tgmount_test_fs")
+    await mount_ops(
+        ops,
+        mount_dir=mnt_dir,
+        min_tasks=10,
+        fsname="tgmount_test_fs",
+    )
 
 
 class Context(MountContext):
@@ -24,6 +30,7 @@ class Context(MountContext):
         self.mnt_dir = mnt_dir
         self.caplog = caplog
         self._debug = False
+
 
     async def run_test(
         self,

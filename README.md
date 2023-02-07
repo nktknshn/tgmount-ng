@@ -286,7 +286,7 @@ Print in json format
 ### tgmount download
 
 ```
-tgmount download [--output-dir OUTPUT_DIR] [--keep-filename] [--request_size REQUEST_SIZE] entity ids [ids ...]
+tgmount download [--output-dir OUTPUT_DIR] [--keep-filename] [--request-size REQUEST_SIZE] entity ids [ids ...]
 ```
 
 `--keep-filename`
@@ -352,6 +352,9 @@ client:
 
   # optional field
   request_size: 128KB
+
+  # optional field. Default: False
+  use_ipv6: True
 ```
 
 ### message_sources
@@ -427,7 +430,8 @@ root:
   # sets a filter for the current folder and subfolders
   filter: {filter: MessageWithMusic, recursive: True}
 
-  # sets a filter for the current folder and subfolders overwriting another recursive filter if any 
+  # sets a filter for the current folder and subfolders overwriting another 
+  # recursive filter if any 
   filter: {filter: MessageWithMusic, overwright: True, recursive: True}
 
   # the following combines multiple filters. Only messages that match every filter
@@ -438,7 +442,7 @@ root:
     - Not:
       - ByExtension: .zip
 
-  # on line
+  # in one line
   filter: {filter: [MessageWithOtherDocument, Not: {ByExtension: .zip}], overwright: True, recursive: True}
 
   # defines a producer that controls the content of the folder. 
@@ -487,7 +491,7 @@ root:
 
 Message source is a list of messages which is used to produce a directory content. Message source is initialized from get_messages() request and is updated by events of posting message, removing message and editing message in the corresponding entity. 
 
-Producer is subscribed to a message source and takes a care of the directory it is responsible for. It manages it by adding and removing files and subfolders.
+Producer is subscribed to a message source and takes care of the directory it is responsible for. It manages it by adding and removing files and subfolders.
 
 The content of a folder is defined by a combination of properties `source`, `filter`, `producer` and `treat_as`. 
 

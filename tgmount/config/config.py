@@ -72,7 +72,6 @@ class CachesReader(PropertyReader):
         return CachesReader
 
     def read_caches(self) -> config.Caches | None:
-
         result = {}
         caches = self
 
@@ -242,7 +241,6 @@ class ConfigRootReader(PropertyReader):
         return wrapper_prop
 
     def read_root(self):
-
         source_prop = self.read_source_prop()
         filter_prop = self.read_filter_prop()
         cache_prop = self.read_cache_prop()
@@ -286,6 +284,7 @@ class ConfigReader(CachesReader, ConfigRootReader):
         self.integer("api_id")
         self.string("api_hash")
         self.getter("request_size", get_bytes_count)
+        self.boolean("use_ipv6", optional=True, default=False)
         return config.Client(**self.get())
 
     def read_message_sources(self):
@@ -302,7 +301,6 @@ class ConfigReader(CachesReader, ConfigRootReader):
         )
 
     def read_config(self) -> config.Config:
-
         mount_dir = self.string("mount_dir", True)
         client = self.enter("client").read_client()
 

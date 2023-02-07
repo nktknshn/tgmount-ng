@@ -139,7 +139,6 @@ class TgmountBase:
         self.logger.trace(f"on_new_message({event})")
         listener = TreeListener(self._vfs_tree)
         async with self._update_lock:
-
             async with listener:
                 await self.events_dispatcher.process_new_message_event(entity_id, event)
 
@@ -202,7 +201,6 @@ class TgmountBase:
 
     # @measure_time(logger_func=logger.info)
     async def _update_fs(self, fs_update: FileSystemOperationsUpdate):
-
         if self._fs is None:
             self.logger.error(f"self._fs is not created yet.")
             return
@@ -231,7 +229,6 @@ class TgmountBase:
         self._fs = self.FileSystemOperations(root)
 
     async def _on_vfs_tree_update(self, updates: list[TreeEventType]):
-
         if len(updates) == 0:
             return
 
@@ -248,7 +245,6 @@ class TgmountBase:
         # await self._update_fs(fs_update)
 
     async def _dispatch_to_filesystem(self, events: list[TreeEventType[VfsTreeDir]]):
-
         for e in events:
             update = fs.FileSystemOperationsUpdate()
 

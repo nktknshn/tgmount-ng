@@ -97,7 +97,7 @@ async def test_fs_rename_filelikes(mnt_dir, caplog):
 
 @pytest.mark.asyncio
 async def test_fs1(mnt_dir, caplog):
-    ctx = Context(mnt_dir)
+    ctx = Context(mnt_dir, caplog)
 
     root1 = vfs.root(
         vfs.dir_content_from_source(

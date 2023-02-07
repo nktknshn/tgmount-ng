@@ -25,6 +25,14 @@ def get_parser():
         "--debug-fs-ops", default=False, action="store_true", dest="debug_fs_ops"
     )
 
+    parser.add_argument(
+        "--use-ipv6",
+        action="store_true",
+        default=False,
+        help="enable IPv6",
+        dest="use_ipv6",
+    )
+
     commands_subparsers = parser.add_subparsers(dest="command")
 
     # command_auth = commands_subparsers.add_parser("auth")
@@ -51,7 +59,6 @@ def get_parser():
 
 
 async def client_main(loop):
-
     parser, command_list = get_parser()
     args = parser.parse_args()
 
@@ -63,13 +70,17 @@ async def client_main(loop):
     if args.command == "list" and args.list_subcommand == "dialogs":
         session, api_id, api_hash = get_tgapp_and_session(args)
 
-        async with get_client(session, api_id, api_hash, loop=loop) as client:
+        async with get_client(
+            session, api_id, api_hash, loop=loop, use_ipv6=args.use_ipv6
+        ) as client:
             await cli.list_dialogs(client)
 
     elif args.command == "list" and args.list_subcommand == "documents":
         session, api_id, api_hash = get_tgapp_and_session(args)
 
-        async with get_client(session, api_id, api_hash, loop=loop) as client:
+        async with get_client(
+            session, api_id, api_hash, loop=loop, use_ipv6=args.use_ipv6
+        ) as client:
             await cli.list_documents(client, args)
     elif args.command == "list":
         command_list.print_help()
@@ -86,7 +97,7 @@ async def client_main(loop):
             mount_dir=args.mount_dir,
             debug_fuse=args.debug_fuse,
             min_tasks=args.min_tasks,
-            # run_server=args.run_server,
+            use_ipv6=args.use_ipv6,
         )
     elif args.command == "mount":
         session, api_id, api_hash = get_tgapp_and_session(args)
@@ -102,15 +113,17 @@ async def client_main(loop):
     elif args.command == "stats":
         session, api_id, api_hash = get_tgapp_and_session(args)
 
-        async with get_client(session, api_id, api_hash, loop=loop) as client:
+        async with get_client(
+            session, api_id, api_hash, loop=loop, use_ipv6=args.use_ipv6
+        ) as client:
             await cli.stats(args)
     elif args.command == "validate":
         await cli.validate(args)
     elif args.command == "download":
-
         session, api_id, api_hash = get_tgapp_and_session(args)
-        async with get_client(session, api_id, api_hash, loop=loop) as client:
-
+        async with get_client(
+            session, api_id, api_hash, loop=loop, use_ipv6=args.use_ipv6
+        ) as client:
             await cli.download(client, args)
 
     else:

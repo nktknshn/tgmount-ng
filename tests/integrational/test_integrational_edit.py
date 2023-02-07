@@ -19,7 +19,6 @@ async def test_simple1(fixtures: Fixtures):
     config = create_config(
         message_sources={"source1": "source1"}, root={"source": "source1"}
     )
-    ctx.set_config(config)
     # ctx.debug = logging.DEBUG
 
     async def test():
@@ -30,7 +29,7 @@ async def test_simple1(fixtures: Fixtures):
         await ctx.client.edit_message(msg1, msg1_copy)
         assert await ctx.read_text("1_message.txt") == "edit"
 
-    await ctx.run_test(test)
+    await ctx.run_test(test, cfg_or_root=config)
 
 
 FileSystemOperations.logger.setLevel(logging.CRITICAL)
@@ -53,7 +52,7 @@ async def test_update_document(fixtures: Fixtures):
         },
     )
     ctx.set_config(config)
-    ctx.debug = logging.ERROR
+    # ctx.debug = logging.ERROR
 
     async def test():
         msg1 = await ctx.source1.document(file=ctx.files.music0, audio=True)
@@ -104,7 +103,7 @@ async def test_update_grouper(fixtures: Fixtures):
         },
     )
     ctx.set_config(config)
-    ctx.debug = logging.DEBUG
+    # ctx.debug = logging.DEBUG
 
     async def test():
         msg1 = await ctx.source1.message(

@@ -6,7 +6,7 @@ from .dir import (
     DirLike,
     dir_content,
     vdir,
-    DirContentProtoWritable,
+    DirContentWritableProto,
     DirContentListWritable,
 )
 from .dir_util import (
