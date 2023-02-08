@@ -3,6 +3,7 @@ import datetime
 from typing import Any, Mapping, Optional, Union
 import yaml
 from tgmount import vfs
+from tgmount.common.extra import Extra
 from tgmount.config.helpers import load_class_from_mapping
 
 from tgmount.util import get_bytes_count, map_none, col
@@ -184,6 +185,7 @@ class DirConfig:
     cache: PropCache | None = None
     treat_as: list[str] | None = None
     other_keys: Mapping[str, "DirConfig"] = field(default_factory=dict)
+    extra: Extra = field(default_factory=Extra)
 
 
 @dataclass

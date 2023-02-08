@@ -75,7 +75,6 @@ class VfsTreeProducerGrouperBase(abc.ABC):
         return frozenset(self._source_by_name.keys())
 
     async def _add_dir(self, dir_name: str, dir_messages: list[MessageProto]):
-
         dir_source = self.MessageSource(
             messages=dir_messages, tag=f"{os.path.join(self._dir.path, dir_name)}"
         )
@@ -84,7 +83,8 @@ class VfsTreeProducerGrouperBase(abc.ABC):
 
         self._source_by_name[dir_name] = dir_source
 
-        await self.VfsTreeProducer(self._resources).produce(
+        await self.VfsTreeProducer().produce(
+            self._resources,
             tree_dir,
             self._dir_config,
             ctx=RootConfigWalkingContext.from_resources(

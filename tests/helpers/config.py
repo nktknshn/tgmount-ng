@@ -1,6 +1,6 @@
 from typing import Mapping
 from tgmount import config
-from tgmount.config.config import ConfigParser
+from tgmount.config.config import ConfigParser, Extensions
 from tgmount.config.config_type import ConfigRootParserProto
 from tgmount.main.util import read_tgapp_api
 
@@ -27,7 +27,8 @@ def create_config(
     message_sources={"source1": "source1"},
     caches=DEFAULT_CACHES,
     root: Mapping = DEFAULT_ROOT,
-    config_reader: ConfigRootParserProto = ConfigParser()
+    config_reader: ConfigRootParserProto = ConfigParser(),
+    extensions: Extensions
 ) -> config.Config:
     api_id, api_hash = read_tgapp_api()
 
@@ -43,5 +44,5 @@ def create_config(
         client=config.Client(api_id=api_id, api_hash=api_hash, session="tgfs"),
         message_sources=config.MessageSources(sources=_message_sources),
         caches=config.Caches(_caches),
-        root=config_reader.parse_root(root),
+        root=config_reader.parse_root(root, extensions),
     )

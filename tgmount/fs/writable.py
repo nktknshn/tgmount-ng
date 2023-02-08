@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 
 import pyfuse3
 from tgmount.fs.update import FileSystemOperationsUpdatable
-from tgmount.fs.util import flags_to_str
+from tgmount.fs.util import exception_handler, flags_to_str
 
 import tgmount.vfs as vfs
 from tgmount.util.col import map_keys
@@ -35,6 +35,7 @@ class FileSystemOperationsWritable(FileSystemOperationsUpdatable):
     the returned inode by one.
     """
 
+    @exception_handler
     async def create(
         self,
         parent_inode: int,
@@ -70,10 +71,13 @@ class FileSystemOperationsWritable(FileSystemOperationsUpdatable):
         ):
             self.logger.warning("create(): parent_dir content is not writable")
             raise pyfuse3.FUSEError(errno.EPERM)
-
-        filelike = await parent_dir.data.structure_item.content.create(
-            self._bytes_to_str(name)
-        )
+        try:
+            filelike = await parent_dir.data.structure_item.content.create(
+                self._bytes_to_str(name)
+            )
+        except Exception as e:
+            self.logger.error(f"Error: {e}")
+            raise pyfuse3.FUSEError(errno.EIO)
 
         item = self.add_subitem(filelike, parent_inode)
 
@@ -100,6 +104,7 @@ class FileSystemOperationsWritable(FileSystemOperationsUpdatable):
 
     """
 
+    @exception_handler
     async def write(self, fh: int, off: int, buf: bytes):
         self.logger.debug(f"= write(fh={fh},off={off},buf={len(buf)} bytes).")
 
@@ -131,7 +136,7 @@ class FileSystemOperationsWritable(FileSystemOperationsUpdatable):
             byte_written = await content.write(handle, off, buf)
         except Exception as e:
             self.logger.error(f"Error while writing: {e}")
-            raise e
+            raise pyfuse3.FUSEError(errno.EIO)
 
         item.data.attrs.st_size = content.size
 

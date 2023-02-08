@@ -3,6 +3,7 @@ import os
 import random
 
 import asyncio
+from typing import Callable
 from tgmount import tglog
 import tgmount.tgclient as tg
 from tgmount.tgclient.client_types import (
@@ -18,6 +19,9 @@ from tgmount.tgclient.types import (
     InputPhotoFileLocation,
     TotalListTyped,
 )
+from telethon import types
+
+from tgmount.util import none_fallback
 
 from .mocked_message import MockedMessage, MockedMessageWithDocument, MockedSender
 from .mocked_storage import EntityId, MockedTelegramStorage
@@ -107,28 +111,35 @@ class MockedClientWriter(TgmountTelegramClientWriterProto):
     async def send_file(
         self,
         entity: EntityId,
-        file: str,
+        file: str | bytes,
         *,
         caption: str | None = None,
         voice_note: bool = False,
         video_note: bool = False,
         force_document=False,
+        file_size: int | None = None,
+        attributes: list | None = None,
+        progress_callback: Callable | None = None,
     ) -> MockedMessageWithDocument:
-
         video = False
 
-        mtype = mimetypes.guess_type(file)[0]
+        if isinstance(file, str):
+            mtype = mimetypes.guess_type(file)[0]
 
-        if mtype is not None and mtype.startswith("video") and not force_document:
-            video = True
-
+            if mtype is not None and mtype.startswith("video") and not force_document:
+                video = True
+        file_name = None
+        for attr in none_fallback(attributes, []):
+            if isinstance(attr, types.DocumentAttributeFilename):
+                file_name = attr.file_name
         return await self._storage.create_entity(entity).document(
             text=caption,
             file=file,
             voice_note=voice_note,
             video_note=video_note,
             video=video,
-            sender=self._sender
+            sender=self._sender,
+            file_name=none_fallback(file_name, False)
             # force_document=force_document,
         )
 

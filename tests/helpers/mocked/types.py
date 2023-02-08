@@ -40,7 +40,7 @@ class MockedStorageProto(Protocol):
     @abstractmethod
     async def create_storage_document(
         self,
-        file: str,
+        file: str | bytes,
         file_name: str | bool = True,
     ) -> StorageItemDocument:
         pass
@@ -49,5 +49,4 @@ class MockedStorageProto(Protocol):
         self,
         file: str,
     ) -> StorageItemPhoto:
-
         ...

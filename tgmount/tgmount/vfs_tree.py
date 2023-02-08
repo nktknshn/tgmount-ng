@@ -2,6 +2,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any, Union
 
 from tgmount import vfs
+from tgmount.common.extra import Extra
 from tgmount.tgclient.message_source_types import (
     Subscribable,
     SubscribableListener,
@@ -123,6 +124,7 @@ class VfsTreeDir(VfsTreeDirMixin):
         tree: "VfsTree",
         path: str,
         wrappers=None,
+        extra: Extra | None = None,
     ) -> None:
         self._parent_tree = tree
         self._path = path
@@ -130,7 +132,7 @@ class VfsTreeDir(VfsTreeDirMixin):
         self._dir_content_items: list[vfs.DirContentItem] = []
 
         self._logger = self.logger.getChild(self.path, suffix_as_tag=True)
-
+        self.extra = extra
         # self.additional_data: Any = None
 
     def add_wrapper(self, w: VfsTreeWrapperProto):

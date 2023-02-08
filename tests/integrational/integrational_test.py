@@ -30,7 +30,7 @@ class MockedVfsTreeProducer(VfsTreeProducer):
     async def produce_path(self, tree_dir, path: str, vfs_config, ctx):
         # to test concurrent
         # await asyncio.sleep(0.1)
-        return await super().produce_from_config(tree_dir, path, vfs_config)
+        return await super().produce_from_vfs_dir_config(tree_dir, path, vfs_config)
 
 
 class MockedTgmountBase(TgmountBase):
@@ -170,7 +170,7 @@ class TgmountIntegrationContext(MountContext):
         self.caplog = caplog
 
         self._default_config = none_fallback(
-            default_config, create_config(config_reader=config_parser)
+            default_config, create_config(config_reader=config_parser, extensions={})
         )
         self.config_parser = config_parser
         self._storage = self.create_storage()
@@ -231,7 +231,7 @@ class TgmountIntegrationContext(MountContext):
         # self.debug = none_fallback(debug, self.debug)
 
         if isinstance(cfg_or_root, Mapping):
-            cfg_or_root = self.config_parser.parse_root(cfg_or_root)
+            cfg_or_root = self.config_parser.parse_root(cfg_or_root, extensions={})
 
         # print(cfg_or_root.other_keys["source1"])
         cfg = self._get_config(cfg_or_root)

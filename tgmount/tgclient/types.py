@@ -8,7 +8,7 @@ TypeMessagesFilter = telethon.types.TypeMessagesFilter
 TypeInputFileLocation = telethon.types.TypeInputFileLocation
 InputDocumentFileLocation = telethon.types.InputDocumentFileLocation
 InputPhotoFileLocation = telethon.types.InputPhotoFileLocation
-
+EntityId = str | int
 
 TT = TypeVar("TT")
 

@@ -1,17 +1,20 @@
-from typing import Any, TypeVar
+from collections.abc import Mapping
+from typing import Any, Type, TypeVar
+
+
 from tgmount import config
+from tgmount.common.extra import Extra
 from tgmount.config.config_type import ConfigParserFilter, ConfigParserProto
 from tgmount.config.types import FilterConfigValue, FilterInputType
-
-from tgmount.util import get_bytes_count, map_none, no
+from tgmount.util import get_bytes_count, map_none, no, none_fallback
 from tgmount.util.col import get_first_pair
 
-
+from . import types
 from .logger import logger
-from collections.abc import Mapping
-from .reader import PropertyReader, ConfigContext
+from .reader import ConfigContext, PropertyReader, TgmountConfigExtensionProto
 
 T = TypeVar("T")
+Extensions = Mapping[Type, list[TgmountConfigExtensionProto]]
 
 
 def ensure_list(value: T | list[T]) -> list[T]:
@@ -22,8 +25,8 @@ def ensure_list(value: T | list[T]) -> list[T]:
 
 
 class FilterPropReader(PropertyReader):
-    def __init__(self, ctx: "ConfigContext") -> None:
-        super().__init__(ctx)
+    def __init__(self, ctx: "ConfigContext", parent_reader=None) -> None:
+        super().__init__(ctx, parent_reader)
 
     @property
     def klass(self):
@@ -92,23 +95,35 @@ class CachesReader(PropertyReader):
         )
 
 
-class ConfigRootReader(PropertyReader):
-    DIR_PROPS_KEYS = {"source", "filter", "cache", "wrappers", "producer", "treat_as"}
+class DirConfigReader(PropertyReader):
+    # DIR_PROPS_KEYS = {
+    #     "source",
+    #     "filter",
+    #     "cache",
+    #     "wrappers",
+    #     "producer",
+    #     "treat_as",
+    # }
+
+    def __init__(
+        self,
+        ctx: "ConfigContext",
+    ) -> None:
+        super().__init__(ctx)
 
     @staticmethod
-    def from_mapping(mapping: Mapping):
-        return ConfigRootReader(ConfigContext(mapping))
+    def from_mapping(
+        mapping: Mapping,
+    ):
+        return DirConfigReader(ConfigContext(mapping))
 
     @property
     def klass(self):
-        return ConfigRootReader
+        return DirConfigReader
 
-    def __init__(self, ctx: "ConfigContext") -> None:
-        super().__init__(ctx)
-
-    @property
-    def other_keys(self):
-        return set(self.ctx.mapping.keys()).difference(self.DIR_PROPS_KEYS)
+    # @property
+    # def other_keys(self):
+    #     return set(self.ctx.mapping.keys()).difference(self.DIR_PROPS_KEYS)
 
     @staticmethod
     def parse_filter_value(filter_value: FilterConfigValue) -> list[tuple[str, Any]]:
@@ -116,7 +131,7 @@ class ConfigRootReader(PropertyReader):
 
     def read_source_prop(self):
         source_prop = None
-        dir_cfg_reader = self.ctx.get_reader()
+        dir_cfg_reader = self.get_reader(PropertyReader)
         (source_value, t) = dir_cfg_reader.value_with_type("source", optional=True)
         if t == "string":
             source_prop = config.PropSource(source_value)
@@ -143,7 +158,7 @@ class ConfigRootReader(PropertyReader):
         FILTER_VALUE_ITEM = str | FILTER_VALUE | Mapping[filter_id, FILTER_ARG]
         """
         filter_prop = None
-        dir_cfg_reader = self.ctx.get_reader(FilterPropReader)
+        dir_cfg_reader = self.get_reader(FilterPropReader)
         (filter_prop_value, t) = dir_cfg_reader.value_with_type("filter", optional=True)
 
         if t == "string":
@@ -187,7 +202,7 @@ class ConfigRootReader(PropertyReader):
         if t == "string":
             cache_prop = config.PropCacheReference(cache_prop_value)
         elif t == "mapping":
-            cache_prop = self.ctx.enter("cache").get_reader(CachesReader).read_cache()
+            cache_prop = CachesReader(self.ctx.enter("cache")).read_cache()
         elif t == "none":
             return
         else:
@@ -240,20 +255,26 @@ class ConfigRootReader(PropertyReader):
 
         return wrapper_prop
 
-    def read_root(self):
+    def read_dir_config(self):
         source_prop = self.read_source_prop()
         filter_prop = self.read_filter_prop()
         cache_prop = self.read_cache_prop()
         producer_prop = self.read_producer_prop()
         treat_as_prop = self.read_treat_as_prop()
         wrapper_prop = self.read_wrappers_prop()
+        # upload_prop = self.boolean("upload")
+
+        extra = Extra()
+
+        for ext in self.ctx.get_extensions(DirConfigReader):
+            ext.extend_config(self, extra)
 
         other_keys = {}
 
-        for other_key in self.other_keys:
-            other_key_root = (
-                self.ctx.enter(other_key).get_reader(ConfigRootReader).read_root()
-            )
+        for other_key in self.other_keys():
+            other_key_root = DirConfigReader(
+                self.ctx.enter(other_key)
+            ).read_dir_config()
             other_keys[other_key] = other_key_root
 
         return config.DirConfig(
@@ -264,26 +285,35 @@ class ConfigRootReader(PropertyReader):
             treat_as=treat_as_prop,
             wrapper=wrapper_prop,
             other_keys=other_keys,
+            # upload=upload_prop
+            extra=extra,
         )
 
 
-class ConfigReader(CachesReader, ConfigRootReader):
+class ConfigReader(CachesReader, DirConfigReader):
     @staticmethod
-    def from_mapping(mapping: Mapping):
-        return ConfigReader(ConfigContext(mapping))
+    def from_mapping(
+        mapping: Mapping,
+        extensions: Mapping[Type, list[TgmountConfigExtensionProto]],
+    ):
+        return ConfigReader(ConfigContext(mapping, extensions=extensions))
 
     @property
     def klass(self):
         return ConfigReader
 
-    def __init__(self, ctx: "ConfigContext") -> None:
-        super().__init__(ctx)
+    def __init__(
+        self,
+        ctx: "ConfigContext",
+    ) -> None:
+        CachesReader.__init__(self, ctx)
+        DirConfigReader.__init__(self, ctx)
 
     def read_client(self) -> config.Client:
         self.string("session")
         self.integer("api_id")
         self.string("api_hash")
-        self.getter("request_size", get_bytes_count)
+        self.getter("request_size", get_bytes_count, optional=True)
         self.boolean("use_ipv6", optional=True, default=False)
         return config.Client(**self.get())
 
@@ -311,7 +341,7 @@ class ConfigReader(CachesReader, ConfigRootReader):
         else:
             caches = None
 
-        root = self.enter("root").read_root()
+        root = self.enter("root").read_dir_config()
 
         return config.Config(
             mount_dir=mount_dir,
@@ -322,15 +352,14 @@ class ConfigReader(CachesReader, ConfigRootReader):
         )
 
 
-from . import types
-
-
 class ConfigParser(ConfigParserProto, ConfigParserFilter):
-    def parse_root(self, mapping: Mapping) -> types.DirConfig:
-        return ConfigReader(ConfigContext(mapping)).read_root()
+    def parse_root(self, mapping: Mapping, extensions: Extensions) -> types.DirConfig:
+        return ConfigReader(
+            ConfigContext(mapping, extensions=extensions)
+        ).read_dir_config()
 
-    def parse_config(self, mapping: Mapping) -> types.Config:
-        return ConfigReader(ConfigContext(mapping)).read_config()
+    def parse_config(self, mapping: Mapping, extensions: Extensions) -> types.Config:
+        return ConfigReader(ConfigContext(mapping, extensions=extensions)).read_config()
 
     def parse_filter_value(
         self, filter_value: types.FilterConfigValue

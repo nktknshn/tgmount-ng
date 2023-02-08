@@ -62,7 +62,6 @@ class StorageEntityBase:
     async def _edit_message(
         self, old_message: MockedMessage, message: MockedMessage
     ) -> MockedMessage:
-
         self._messages = list(filter(lambda m: m.id != old_message.id, self._messages))
 
         self._messages.append(message)
@@ -191,7 +190,7 @@ class StorageEntityBase:
 
     async def document(
         self,
-        file: str | DocumentProto,
+        file: str | DocumentProto | bytes,
         *,
         sender: str | MockedSender | None = None,
         forward: str | MockedForward | None = None,
@@ -217,7 +216,7 @@ class StorageEntityBase:
         if yes(msg_id):
             msg.id = msg_id
 
-        if isinstance(file, str):
+        if isinstance(file, (str, bytes)):
             storage_file = await self._storage.create_storage_document(file, file_name)
             if image:
                 storage_file.attributes.append(
@@ -225,7 +224,8 @@ class StorageEntityBase:
                 )
 
             msg.document = storage_file.get_document()
-
+        # elif isinstance(file, bytes):
+        #     pass
         else:
             storage_file = self._storage.get_storage_document(file.id)
 

@@ -1,13 +1,15 @@
-from typing import Any, Callable, Literal, Type, TypeVar, overload
+from abc import abstractmethod
+from typing import Any, Callable, Literal, Optional, Protocol, Type, TypeVar, overload
 from typing_extensions import Self
 from tgmount import config
+from tgmount.common.extra import Extra
 from tgmount.config.error import (
     ConfigError,
     ConfigErrorWithPath,
     MissingKeyError,
     TypecheckError,
 )
-from tgmount.util import get_bytes_count, map_none, no
+from tgmount.util import get_bytes_count, map_none, no, none_fallback, yes
 from tgmount.util.col import get_first_pair
 
 
@@ -27,6 +29,17 @@ ValueType = (
 )
 
 
+InputErrorType = str | ConfigError | Exception
+
+R = TypeVar("R", bound="PropertyReader")
+
+
+class TgmountConfigExtensionProto(Protocol):
+    @abstractmethod
+    def extend_config(self, reader: "PropertyReader", extra: Extra):
+        ...
+
+
 def ensure_list(value: T | list[T]) -> list[T]:
     if isinstance(value, list):
         return value
@@ -37,10 +50,13 @@ def ensure_list(value: T | list[T]) -> list[T]:
 class PropertyReader:
     logger = logger.getChild("PropertyReader")
 
-    def __init__(self, ctx: "ConfigContext") -> None:
+    def __init__(
+        self, ctx: "ConfigContext", parent_reader: Optional["PropertyReader"] = None
+    ) -> None:
         self.result = {}
         self.ctx = ctx
         self._keys_read: set[str] = set()
+        self._parent_reader = parent_reader
 
     def get(self) -> Mapping:
         return self.result
@@ -50,6 +66,10 @@ class PropertyReader:
 
     def get_key(self, key: str, optional=False, default=None) -> Any | None:
         self._keys_read.add(key)
+
+        if yes(self._parent_reader):
+            self._parent_reader._keys_read.add(key)
+
         value = self.ctx.mapping.get(key, default)
         if not optional and value is None:
             self.ctx.fail(MissingKeyError(key))
@@ -188,14 +208,18 @@ class PropertyReader:
 
         return value, self.typeof_value(value)
 
-    def read(self, props: Mapping[str, Type]):
-        pass
+    # def read(self, props: Mapping[str, Type]):
+    #     pass
 
     def add_path(self, key: str) -> Self:
-        return self.klass(ConfigContext(self.ctx.mapping, [*self.ctx.path, key]))
+        self._keys_read.add(key)
+        return self.klass(
+            ConfigContext(self.ctx.mapping, [*self.ctx.path, key], self.ctx.extensions)
+        )
 
     def enter(self, key: str) -> Self:
         self.logger.debug(f"enter({key})")
+        self._keys_read.add(key)
         return self.ctx.enter(key).get_reader(self.klass)
 
     @property
@@ -211,21 +235,29 @@ class PropertyReader:
     def assert_no_other_keys(self, error: "InputErrorType"):
         self.ctx.assert_that(len(self.other_keys()) == 0, error)
 
-
-InputErrorType = str | ConfigError | Exception
-
-R = TypeVar("R", bound=PropertyReader)
+    def get_reader(self, klass: Type[R] | None = None) -> R:
+        """Same as `klass(self)`"""
+        k = none_fallback(klass, PropertyReader)
+        return k(self.ctx, self)
 
 
 class ConfigContext:
     logger = logger.getChild(f"ConfigContext")
 
-    def __init__(self, mapping: Mapping, path: list[str] = []):
+    def __init__(
+        self,
+        mapping: Mapping,
+        path: list[str] = [],
+        extensions: Mapping[Type, list[TgmountConfigExtensionProto]] | None = None,
+    ):
         self.mapping = mapping
         self.path = path
+        self.extensions = none_fallback(extensions, {})
 
-    def get_property(self, key: str, typ: Type[T]):
-        pass
+    def get_extensions(self, typ: Type) -> list[TgmountConfigExtensionProto]:
+        # print(self.extensions)
+        # print(type(reader))
+        return none_fallback(self.extensions.get(typ), [])
 
     def keys(self) -> list[str]:
         return list(self.mapping.keys())
@@ -245,7 +277,9 @@ class ConfigContext:
 
         self.assert_type(mapping, dict, f"Cannot enter key `{key}`. Expected mapping.")
 
-        return ConfigContext(mapping, path=[*self.path, key])
+        return ConfigContext(
+            mapping, path=[*self.path, key], extensions=self.extensions
+        )
 
     def fail(self, error: InputErrorType):
         raise ConfigErrorWithPath(self.path, self.get_error(error), str(error))
@@ -275,4 +309,5 @@ class ConfigContext:
             self.fail(self.get_error(error))
 
     def get_reader(self, klass: Type[R] = PropertyReader) -> R:
+        """Same as `klass(self)`"""
         return klass(self)

@@ -1,5 +1,6 @@
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from typing import Mapping, Type, Any
+from tgmount.common.extra import Extra
 from tgmount.config.types import MessageSource
 from tgmount.tgclient.message_source_types import (
     MessageSourceProto,
@@ -33,10 +34,7 @@ class TgmountResources:
     vfs_wrappers: ProviderVfsWrappersBase
 
     fetchers_dict: Mapping
-    #  | None = None
-    """ Dictionary of initial messages fetchers """
-
-    extra: Mapping[str, Any]
+    extra: Extra = field(default_factory=Extra)
 
     def set_sources(self, sources: SourcesProviderProto):
         return replace(self, sources=sources)

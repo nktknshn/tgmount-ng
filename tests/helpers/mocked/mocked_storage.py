@@ -29,6 +29,8 @@ from .mocked_storage_entity import StorageEntity, get_entity_chat_id
 from .mocked_storage_files import StorageFiles
 from .types import EntityId, MockedStorageProto
 
+from .util import random_int
+
 
 class MockedTelegramStorage(MockedStorageProto):
     _logger = tglog.getLogger("MockedTelegramStorage()")
@@ -104,7 +106,6 @@ class MockedTelegramStorage(MockedStorageProto):
         self._subscriber_per_entity_edited[chats].append(listener)
 
     async def _read_file(self, file_path: str) -> bytes:
-
         if file_path in self._files_cache:
             return self._files_cache[file_path]
 
@@ -117,13 +118,19 @@ class MockedTelegramStorage(MockedStorageProto):
 
     async def create_storage_document(
         self,
-        file: str,
+        file: str | bytes,
         file_name: str | bool = True,
     ) -> StorageItemDocument:
-        file_bytes = await self._read_file(file)
+        if isinstance(file, str):
+            file_bytes = await self._read_file(file)
+        else:
+            file_bytes = file
 
         if isinstance(file_name, bool) and file_name is True:
-            _file_name = os.path.basename(file)
+            if isinstance(file, str):
+                _file_name = os.path.basename(file)
+            else:
+                _file_name = str(random_int(1000000))
         elif isinstance(file_name, bool) and file_name is False:
             _file_name = None
         else:
@@ -160,7 +167,6 @@ class MockedTelegramStorage(MockedStorageProto):
     async def edit_message(
         self, old_message: MockedMessage, new_message: MockedMessage
     ):
-
         ent = self.get_entity_by_chat_id(old_message.chat_id)
         message = await ent._edit_message(old_message, new_message)
 
@@ -170,7 +176,6 @@ class MockedTelegramStorage(MockedStorageProto):
         return message
 
     async def put_message(self, message: MockedMessage):
-
         ent = self._entity_by_chat_id[message.chat_id]
 
         message = await ent.add_message(message)
@@ -190,7 +195,6 @@ class MockedTelegramStorage(MockedStorageProto):
     async def get_messages(
         self, entity_or_chat_id: int | str, ids: list[int] | None = None
     ) -> TotalListTyped:
-
         ent = self.get_entity(entity_or_chat_id)
 
         return ent.get_messages(ids)

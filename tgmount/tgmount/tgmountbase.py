@@ -212,7 +212,7 @@ class TgmountBase:
         """Produce VfsTree"""
 
         self.logger.info(f"Producing VfsTree.")
-        await self._producer.produce(self._vfs_tree, self._root_config)
+        await self._producer.produce(self.resources, self._vfs_tree, self._root_config)
 
     async def resume_dispatcher(self):
         await self.events_dispatcher.resume()

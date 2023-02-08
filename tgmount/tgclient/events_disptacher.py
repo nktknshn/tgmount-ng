@@ -7,11 +7,11 @@ from tgmount.tgclient.client_types import TgmountTelegramClientGetMessagesProto
 from tgmount.tgclient.message_reaction_event import MessageReactionEvent
 from tgmount.tgclient.message_source_types import MessageSourceProto
 from tgmount.tgclient.message_types import MessageProto
+from tgmount.tgclient.types import EntityId
 
 from .logger import logger as _logger
 from .message_source import MessageSource
 
-EntityId = str | int
 EventType = (
     events.NewMessage.Event
     | events.MessageDeleted.Event

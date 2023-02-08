@@ -13,11 +13,11 @@ class ConfigParserFilter(Protocol):
 
 class ConfigRootParserProto(Protocol):
     @abstractmethod
-    def parse_root(self, mapping: Mapping) -> types.DirConfig:
+    def parse_root(self, mapping: Mapping, extensions) -> types.DirConfig:
         ...
 
 
 class ConfigParserProto(ConfigRootParserProto, Protocol):
     @abstractmethod
-    def parse_config(self, mapping: Mapping) -> types.Config:
+    def parse_config(self, mapping: Mapping, extensions) -> types.Config:
         ...

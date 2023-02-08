@@ -14,35 +14,50 @@ from .vfs_tree_producer_types import VfsDirConfig
 class VfsTreeProducer:
     """Class that using `TgmountResources` and `VfsStructureConfig` produces content into `VfsTreeDir` or `VfsTree`"""
 
+    TgmountConfigReader = TgmountConfigReader
+
     logger = logger.getChild(f"VfsTreeProducer")
     LOG_DEPTH = 2
 
-    def __init__(self, resources: TgmountResources) -> None:
-        self._resources = resources
+    def __init__(self) -> None:
+        pass
+        # self._resources = resources
 
     def __repr__(self) -> str:
         return f"VfsTreeProducer()"
 
     async def produce(
         self,
+        resources: TgmountResources,
         tree_dir: VfsTreeDir | VfsTree,
         dir_config: config.DirConfig,
         ctx=None,
     ):
         """Produce content into `tree_dir` using `dir_config`"""
-        config_reader = TgmountConfigReader()
+        config_reader = self.TgmountConfigReader()
 
         t1 = Timer()
         t1.start("producer")
 
-        async for (path, keys, vfs_config, ctx) in config_reader.walk_config_with_ctx(
+        async for (
+            path,
+            keys,
+            vfs_dir_config,
+            ctx,
+        ) in config_reader.walk_config_with_ctx(
             dir_config,
-            resources=self._resources,
+            resources=resources,
             ctx=none_fallback(
-                ctx, RootConfigWalkingContext.from_resources(self._resources)
+                ctx,
+                RootConfigWalkingContext.from_resources(resources),
             ),
         ):
-            await self.produce_from_config(tree_dir, path, vfs_config)
+            await self.produce_from_vfs_dir_config(
+                resources,
+                tree_dir,
+                path,
+                vfs_dir_config,
+            )
 
         t1.stop()
 
@@ -50,12 +65,12 @@ class VfsTreeProducer:
         #     f"Done producing {tree_dir.path}. {t1.intervals[0].duration:.2f} ms"
         # )
 
-    async def produce_from_config(
+    async def produce_from_vfs_dir_config(
         self,
+        resources: TgmountResources,
         tree_dir: VfsTreeDir | VfsTree,
         path: str,
         vfs_config: VfsDirConfig,
-        # ctx: RootConfigContext,
     ):
         """Using `VfsDirConfig` produce content into `tree_dir`"""
         global_path = vfs.path_join(tree_dir.path, path)
@@ -70,10 +85,6 @@ class VfsTreeProducer:
 
         # If the directory has any wrapper
         if vfs_config.vfs_wrappers is not None:
-            # self.logger.debug(
-            #     f"{sub_dir.path} has {len(vfs_config.vfs_wrappers)} wrappers"
-            # )
-
             for wrapper_cls, wrapper_arg in vfs_config.vfs_wrappers:
                 wrapper = wrapper_cls.from_config(
                     none_fallback(wrapper_arg, {}), sub_dir
@@ -88,20 +99,11 @@ class VfsTreeProducer:
             # self.logger.debug(f"{sub_dir.path} uses {vfs_config.vfs_producer} producer")
 
             producer = await vfs_config.vfs_producer.from_config(
-                self._resources,
+                resources,
                 vfs_config.vfs_producer_config,
                 none_fallback(vfs_config.vfs_producer_arg, {}),
                 sub_dir,
             )
             await producer.produce()
 
-        # elif yes(vfs_config.vfs_producer) and isinstance(
-        #     vfs_config.vfs_producer, VfsTreeProducerWithoutConfigProto
-        # ):
-        #     producer = await vfs_config.vfs_producer.from_config(
-        #         resources=self._resources,
-        #         vfs_tree_dir=sub_dir,
-        #         arg={},
-        #     )
-
-        #     await producer.produce()
+        return sub_dir

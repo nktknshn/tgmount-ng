@@ -2,7 +2,7 @@ from abc import abstractmethod
 from typing import Any, Awaitable, Callable, Protocol, Sequence, TypeVar
 
 from telethon import events
-from tgmount.tgclient.events_disptacher import EntityId
+from tgmount.tgclient.types import EntityId
 from tgmount.tgclient.guards import MessageDownloadable
 
 from tgmount.tgclient.message_reaction_event import MessageReactionEvent
@@ -142,6 +142,15 @@ class TgmountTelegramClientReaderProto(
 
 
 class TgmountTelegramClientWriterProto(
-    TgmountTelegramClientSendMessageProto, TgmountTelegramClientDeleteMessagesProto
+    TgmountTelegramClientSendMessageProto,
+    TgmountTelegramClientDeleteMessagesProto,
+    TgmountTelegramClientSendFileProto,
+):
+    pass
+
+
+class TgmountTelegramClientProto(
+    TgmountTelegramClientReaderProto,
+    TgmountTelegramClientSendFileProto,
 ):
     pass

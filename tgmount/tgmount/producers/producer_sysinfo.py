@@ -27,7 +27,6 @@ class SysInfoCaches(vfs.FileContentStringProto):
         self._caches = caches
 
     async def get_string(self, handle: Any) -> str:
-
         result = ""
 
         for cache_id in self._caches.ids:
@@ -104,7 +103,11 @@ class VfsTreeProducerSysInfo(VfsTreeProducerProto):
             vfs.vfile("caches", SysInfoCaches(self._resources.caches)),
         )
 
-        get_tgm: Callable[[], TgmountBase] | None = self._resources.extra.get("get_tgm")
+        # get_tgm: Callable[[], TgmountBase] | None = self._resources.extra.get("get_tgm")
+
+        get_tgm: Callable[
+            [], TgmountBase
+        ] | None = self._resources.extra.sysinfo.get_tgm
 
         if not yes(get_tgm):
             self.logger.warning("Missinex get_tgm in extra.")
