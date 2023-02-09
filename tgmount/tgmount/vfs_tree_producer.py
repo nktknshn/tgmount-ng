@@ -1,3 +1,4 @@
+from typing import Sequence
 from tgmount import vfs, config
 from tgmount.util import none_fallback, yes
 from tgmount.util.timer import Timer
@@ -8,7 +9,7 @@ from .root_config_types import RootConfigWalkingContext
 from .tgmount_types import TgmountResources
 from .types import TgmountRootType
 from .vfs_tree import VfsTree, VfsTreeDir
-from .vfs_tree_producer_types import VfsDirConfig
+from .vfs_tree_producer_types import VfsTreeProducerExtensionProto, VfsDirConfig
 
 
 class VfsTreeProducer:
@@ -19,8 +20,10 @@ class VfsTreeProducer:
     logger = logger.getChild(f"VfsTreeProducer")
     LOG_DEPTH = 2
 
-    def __init__(self) -> None:
-        pass
+    def __init__(
+        self, extensions: Sequence[VfsTreeProducerExtensionProto] | None = None
+    ) -> None:
+        self._extensions = none_fallback(extensions, [])
         # self._resources = resources
 
     def __repr__(self) -> str:
@@ -105,5 +108,8 @@ class VfsTreeProducer:
                 sub_dir,
             )
             await producer.produce()
+
+        for ext in self._extensions:
+            await ext.extend_vfs_tree_dir(resources, vfs_config, sub_dir)
 
         return sub_dir

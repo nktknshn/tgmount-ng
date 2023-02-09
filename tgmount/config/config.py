@@ -353,12 +353,16 @@ class ConfigReader(CachesReader, DirConfigReader):
 
 
 class ConfigParser(ConfigParserProto, ConfigParserFilter):
-    def parse_root(self, mapping: Mapping, extensions: Extensions) -> types.DirConfig:
+    def parse_root(
+        self, mapping: Mapping, extensions: Extensions | None = None
+    ) -> types.DirConfig:
         return ConfigReader(
             ConfigContext(mapping, extensions=extensions)
         ).read_dir_config()
 
-    def parse_config(self, mapping: Mapping, extensions: Extensions) -> types.Config:
+    def parse_config(
+        self, mapping: Mapping, extensions: Extensions | None = None
+    ) -> types.Config:
         return ConfigReader(ConfigContext(mapping, extensions=extensions)).read_config()
 
     def parse_filter_value(

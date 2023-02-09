@@ -5,7 +5,8 @@ from tgmount.tgclient.messages_collection import MessagesCollection, WithId, mes
 from tgmount.util import none_fallback
 
 from .logger import logger as _logger
-from .message_source_types import MessageSourceProto, Subscribable
+from .message_source_types import MessageSourceProto
+from tgmount.common.subscribable import Subscribable
 
 M = TypeVar("M", bound=WithId)
 
@@ -69,7 +70,6 @@ class MessageSource(MessageSourceProto, Generic[M]):
         return res
 
     async def edit_messages(self, messages: Iterable[M]):
-
         if self._messages is None:
             self._logger.error(f"edit_messages(). Messages are not initiated yet")
             return
@@ -89,7 +89,6 @@ class MessageSource(MessageSourceProto, Generic[M]):
         await self.event_edited_messages.notify(old_messages, filtered)
 
     async def add_messages(self, messages: Iterable[M]):
-
         if self._messages is None:
             self._messages = MessagesCollection()
 
@@ -163,7 +162,6 @@ class MessageSource(MessageSourceProto, Generic[M]):
         filtered = await self._filter_messages(messages)
 
         if self._messages is None:
-
             self._messages = MessagesCollection.from_iterable(filtered)
 
             if not notify:

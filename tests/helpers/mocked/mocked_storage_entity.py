@@ -205,6 +205,7 @@ class StorageEntityBase:
         gif=False,
         reactions: Mapping[str, int] | None = None,
         msg_id: int | None = None,
+        notify=True,
     ) -> MockedMessageWithDocument:
         msg = await self.message(
             put=False,
@@ -250,7 +251,7 @@ class StorageEntityBase:
             msg.video_note = msg.document
 
         if put:
-            await self._storage.put_message(msg)
+            await self._storage.put_message(msg, notify)
 
         return msg
 

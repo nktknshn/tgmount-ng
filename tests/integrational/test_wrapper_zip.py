@@ -47,8 +47,8 @@ producer_cfg = {
 
 
 async def prepare_ctx(fixtures: Fixtures):
-
     ctx = Context.from_fixtures(fixtures)
+    ctx.debug = logging.CRITICAL
 
     config = create_config(
         message_sources={"source1": "source1"},
@@ -88,7 +88,7 @@ async def test_simple1(fixtures: Fixtures):
 
         assert await ctx.listdir_set("/", f"2_{fname2}") == set(fls2.keys())
 
-        await ctx.client.delete_messages(ctx.source1.entity_id, msg_ids=[1])
+        await ctx.client.delete_messages(ctx.source1.entity_id, message_ids=[1])
 
         assert await ctx.listdir_set("/") == {
             f"2_{fname2}",
@@ -103,7 +103,6 @@ async def test_simple1(fixtures: Fixtures):
 
 @pytest.mark.asyncio
 async def test_simple2(fixtures: Fixtures):
-
     ctx = await prepare_ctx(fixtures)
 
     fname1 = ctx.files.zip_debrecen.basename
@@ -127,7 +126,7 @@ async def test_simple2(fixtures: Fixtures):
         assert await ctx.listdir_set("/", f"1_2010_Debrecen") == set(fls1.keys())
         assert await ctx.listdir_set("/", f"2_{fname2}") == set(fls2.keys())
 
-        await ctx.client.delete_messages(ctx.source1.entity_id, msg_ids=[1])
+        await ctx.client.delete_messages(ctx.source1.entity_id, message_ids=[1])
 
         assert await ctx.listdir_set("/") == {
             f"2_{fname2}",
@@ -156,7 +155,6 @@ async def test_simple2(fixtures: Fixtures):
 
 @pytest.mark.asyncio
 async def test_simple3(fixtures: Fixtures):
-
     ctx = await prepare_ctx(fixtures)
 
     fname1 = ctx.files.zip_debrecen.basename
@@ -172,7 +170,7 @@ async def test_simple3(fixtures: Fixtures):
             f"2_{fname2}_unzipped",
         }
 
-        await ctx.client.delete_messages(ctx.source1.entity_id, msg_ids=[1])
+        await ctx.client.delete_messages(ctx.source1.entity_id, message_ids=[1])
 
         assert await ctx.listdir_set("/") == {
             f"2_{fname2}",
@@ -202,7 +200,6 @@ async def test_simple3(fixtures: Fixtures):
 
 @pytest.mark.asyncio
 async def test_simple4(fixtures: Fixtures):
-
     ctx = await prepare_ctx(fixtures)
 
     fname1 = ctx.files.zip_debrecen.basename
@@ -229,7 +226,6 @@ async def test_simple4(fixtures: Fixtures):
 
 @pytest.mark.asyncio
 async def test_simple_edit_message(fixtures: Fixtures):
-
     ctx = await prepare_ctx(fixtures)
 
     fname1 = ctx.files.zip_debrecen.basename

@@ -5,6 +5,8 @@ import yaml
 
 from tgmount import config
 from tgmount.config.config import ConfigParser
+from tgmount.fs import writable
+from tgmount.tgmount.extensions.writable import TgmountExtensionWritable
 from tgmount.tgmount.validator import ConfigValidator
 from tgmount.config.types import parse_datetime
 from tgmount.tgclient.fetcher import TelegramMessagesFetcher
@@ -74,6 +76,9 @@ def add_mount_arguments(command_mount: ArgumentParser):
         dest="no_fix_id3v1",
         help="Do not patch read method for zipped flac and mp3.",
     )
+    command_mount.add_argument(
+        "--upload", default=False, action="store_true", dest="upload"
+    )
 
     command_mount.add_argument(
         "--debug-fuse", default=False, action="store_true", dest="debug_fuse"
@@ -88,7 +93,10 @@ async def mount(
     api_credentials: Optional[tuple[int, str]] = None,
     session: Optional[str] = None,
 ):
-    builder = TgmountBuilder()
+    writable_extension = TgmountExtensionWritable()
+    builder = TgmountBuilder(
+        extensions=[writable_extension],
+    )
     validator = ConfigValidator(builder)
 
     producer = None
@@ -130,8 +138,12 @@ async def mount(
                 "block_size": "256KB",
             }
 
+    if args.upload:
+        root_content["upload"] = True
+
     logger.debug(f"{root_content}")
     config_parser = ConfigParser()
+
     cfg = config.Config(
         client=config.Client(
             session=session,
@@ -157,10 +169,12 @@ async def mount(
                 )
             }
         ),
-        root=config_parser.parse_root(root_content),
+        root=config_parser.parse_root(
+            root_content, extensions=TgmountExtensionWritable.config_extension()
+        ),
     )
 
-    await validator.verify_config(cfg)
+    # await validator.verify_config(cfg)
 
     tgm = await builder.create_tgmount(cfg)
 

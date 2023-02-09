@@ -9,7 +9,7 @@ import telethon
 from telethon import TelegramClient
 from tgmount import tglog
 
-from tgmount.tgclient.message_source_types import Subscribable
+from tgmount.common.subscribable import Subscribable
 from tgmount.util import map_none_else, yes
 
 from .auth import TelegramAuthen

@@ -3,7 +3,7 @@ from typing import Any, Union
 
 from tgmount import vfs
 from tgmount.common.extra import Extra
-from tgmount.tgclient.message_source_types import (
+from tgmount.common.subscribable import (
     Subscribable,
     SubscribableListener,
     SubscribableProto,
@@ -214,16 +214,28 @@ class VfsTreeDir(VfsTreeDirMixin):
         subpath: str = "/",
         *,
         replace=False,
+        notify=True,
     ):
         if not isinstance(content, Sequence):
             content = [content]
 
         await self._parent_tree.put_content(
-            content, self._globalpath(subpath), replace=replace
+            content, self._globalpath(subpath), replace=replace, notify=notify
         )
 
     async def remove_subdir(self, subpath: str):
         await self._parent_tree.remove_dir(self._globalpath(subpath))
+
+    async def get_by_name(
+        self,
+        file_name: str,
+        subpath: str = "/",
+    ):
+        items = await self._parent_tree.get_dir_content_items(self._globalpath(subpath))
+
+        for item in items:
+            if item.name == file_name:
+                return item
 
     async def remove_content(
         self,
@@ -353,15 +365,17 @@ class VfsTree(Subscribable, VfsTreeProto):
         path: str = "/",
         *,
         replace=False,
+        notify=True,
     ):
         """Put a sequence of `vfs.DirContentItem` at `path`."""
         sd = await self.get_dir(path)
 
         await sd._put_content(content, replace=replace)
 
-        await sd.child_updated(
-            [TreeEventNewItems(sender=sd, new_items=list(content))],
-        )
+        if notify:
+            await sd.child_updated(
+                [TreeEventNewItems(sender=sd, new_items=list(content))],
+            )
 
     async def update_content(
         self,

@@ -19,11 +19,11 @@ class MockedStorageProto(Protocol):
         pass
 
     @abstractmethod
-    async def put_message(self, message: MockedMessage):
+    async def put_message(self, message: MockedMessage, notify: bool):
         pass
 
     @abstractmethod
-    async def delete_messages(self, entity: EntityId, msg_ids: list[int]):
+    async def delete_messages(self, entity: EntityId, message_ids: list[int]):
         pass
 
     # @abstractmethod

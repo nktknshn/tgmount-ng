@@ -1,3 +1,4 @@
+from abc import abstractmethod, ABC
 import logging
 import os
 from datetime import datetime
@@ -10,10 +11,12 @@ from typing import (
 )
 
 import aiofiles
+from tgmount.util.col import bytearray_write
 
 from tgmount.vfs.types.file import (
     FileContent,
     FileContentProto,
+    FileContentWritableProto,
     FileLike,
     FileContentStringProto,
     FileContentStringWritable,
@@ -155,3 +158,33 @@ async def read_file_content_bytes(fc: FileContentProto) -> bytes:
     await fc.close_func(handle)
 
     return data
+
+
+class FileContentWritableConsumer(FileContentWritableProto, ABC):
+    """Consumes all the bytes. The result will be available in `close_func`"""
+
+    size: int = 0
+
+    def __init__(self) -> None:
+        self._data: bytearray = bytearray()
+
+    async def seek_func(self, handle, n: int, w: int):
+        raise NotImplementedError()
+
+    async def read_func(self, handle, off: int, size: int) -> bytes:
+        raise NotImplementedError()
+
+    tell_func: Optional[Callable[[Any], Awaitable[int]]] = None
+
+    async def write(self, handle: None, off: int, buf: bytes):
+        bytearray_write(self._data, off, buf)
+        self.size = len(self._data)
+        return len(buf)
+
+    @abstractmethod
+    async def open_func(self) -> None:
+        return
+
+    @abstractmethod
+    async def close_func(self, handle):
+        return

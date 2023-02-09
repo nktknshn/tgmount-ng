@@ -1,26 +1,12 @@
-from abc import abstractmethod
-import dataclasses
-from typing import Any, Protocol
 import pytest
 import yaml
-import os
-from pprint import pprint
-from tgmount import config
+
 from tgmount.config import *
-from tgmount.config.config import ConfigParser, ConfigReader, DirConfigReader
-from tgmount.config.reader import TgmountConfigExtensionProto
-from tgmount.tgclient.uploader import TelegramFileUploader
+from tgmount.config.config import ConfigReader, DirConfigReader
 from tgmount.tgmount.extensions.writable import (
     TgmountExtensionWritable,
     WritableDirConfig,
 )
-from tgmount.tgmount.root_config_reader import TgmountConfigReader
-from tgmount.tgmount.tgmount_builderbase import (
-    TgmountBuilderBase,
-    TgmountBuilderExtensionProto,
-)
-from tgmount.tgmount.tgmount_types import TgmountResources
-from tgmount.util import yes
 
 
 def test_reader1():

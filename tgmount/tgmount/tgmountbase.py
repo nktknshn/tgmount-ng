@@ -33,10 +33,6 @@ class TgmountBase:
     Connects VfsTree and FilesystemOperations by dispatching events from the virtual tree to FilesystemOperations
     """
 
-    FileSystemOperations: Type[
-        fs.FileSystemOperationsUpdatable
-    ] = fs.FileSystemOperationsUpdatable
-
     logger = _logger.getChild("TgmountBase")
 
     def __init__(
@@ -52,7 +48,7 @@ class TgmountBase:
         self._resources = resources
         self._mount_dir: Optional[str] = mount_dir
 
-        self._fs = None
+        self.fs: fs.FileSystemOperationsUpdatable
 
         self._vfs_tree: VfsTree
         self._producer: VfsTreeProducer
@@ -91,9 +87,13 @@ class TgmountBase:
     def client(self):
         return self._client
 
-    @property
-    def fs(self) -> fs.FileSystemOperationsUpdatable | None:
-        return self._fs
+    # @property
+    # def fs(self) -> fs.FileSystemOperationsUpdatable | None:
+    #     return self._fs
+
+    # @fs.setter
+    # def fs(self, _fs: fs.FileSystemOperationsUpdatable):
+    #     self._fs = _fs
 
     async def fetch_messages(self):
         """Fetch initial messages from message_sources"""
@@ -137,8 +137,10 @@ class TgmountBase:
             f"on_new_message({entity_id}, {MessageProto.repr_short(event.message)})"
         )
         self.logger.trace(f"on_new_message({event})")
-        listener = TreeListener(self._vfs_tree)
+
         async with self._update_lock:
+            listener = TreeListener(self._vfs_tree, exclusively=True)
+
             async with listener:
                 await self.events_dispatcher.process_new_message_event(entity_id, event)
 
@@ -153,7 +155,7 @@ class TgmountBase:
         self, entity_id: EntityId, event: events.MessageDeleted.Event
     ):
         self.logger.info(f"on_delete_message({entity_id}, {event.deleted_ids})")
-        listener = TreeListener(self._vfs_tree)
+        listener = TreeListener(self._vfs_tree, exclusively=True)
 
         async with self._update_lock:
             async with listener:
@@ -184,7 +186,7 @@ class TgmountBase:
 
         self.logger.trace(event)
 
-        listener = TreeListener(self._vfs_tree)
+        listener = TreeListener(self._vfs_tree, exclusively=True)
 
         async with self._update_lock:
             async with listener:
@@ -201,12 +203,12 @@ class TgmountBase:
 
     # @measure_time(logger_func=logger.info)
     async def _update_fs(self, fs_update: FileSystemOperationsUpdate):
-        if self._fs is None:
+        if self.fs is None:
             self.logger.error(f"self._fs is not created yet.")
             return
 
-        async with self._fs._update_lock:
-            await self._fs.update(fs_update)
+        async with self.fs._update_lock:
+            await self.fs.update(fs_update)
 
     async def produce_vfs_tree(self):
         """Produce VfsTree"""
@@ -224,9 +226,13 @@ class TgmountBase:
 
         root_contet = await self._vfs_tree.get_dir_content()
 
-        root = vfs.root(root_contet)
+        self.fs.init_root(vfs.root(root_contet))
+        # self._fs = self.FileSystemOperations(root)
 
-        self._fs = self.FileSystemOperations(root)
+    async def on_event_from_fs(self, sender, updates: list[TreeEventType]):
+        async with self._update_lock:
+            if self.fs._root:
+                await self._dispatch_to_filesystem(updates)
 
     async def _on_vfs_tree_update(self, updates: list[TreeEventType]):
         if len(updates) == 0:
@@ -308,7 +314,7 @@ class TgmountBase:
         self.logger.info(f"Mounting into {mount_dir}")
 
         await main.util.mount_ops(
-            self._fs,
+            self.fs,
             mount_dir=mount_dir,
             min_tasks=min_tasks,
             debug=debug_fuse,

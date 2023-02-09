@@ -34,6 +34,9 @@ class Extra:
     def __init__(self) -> None:
         self._extra: dict[str, Namespace] = {}
 
+    def __repr__(self) -> str:
+        return f"Extra({list(self._extra.keys())})"
+
     def __getattribute__(self, __name: str) -> Namespace:
         try:
             return super(Extra, self).__getattribute__(__name)

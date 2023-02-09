@@ -27,6 +27,12 @@ FileFactorySupportedTypes = (
     | T
 )
 
+TelegramFileExtra = tuple[int | None, int | None]
+
+
+def is_telegram_extra(value: Any) -> TypeGuard[TelegramFileExtra]:
+    return isinstance(value, tuple)
+
 
 class FileFactoryDefault(FileFactoryBase[FileFactorySupportedTypes | T], Generic[T]):
     """Takes a telegram message and produces vfs.FileLike or vfs.FileContentProto"""
@@ -45,7 +51,6 @@ class FileFactoryDefault(FileFactoryBase[FileFactorySupportedTypes | T], Generic
     async def file_content(
         self, supported_item: FileFactorySupportedTypes, factory_props=None
     ) -> vfs.FileContentProto:
-
         if (
             get_file_content := self.get_cls_item(
                 supported_item, factory_props=factory_props
@@ -58,7 +63,6 @@ class FileFactoryDefault(FileFactoryBase[FileFactorySupportedTypes | T], Generic
     async def file(
         self, supported_item: FileFactorySupportedTypes, name=None, factory_props=None
     ) -> vfs.FileLike:
-
         creation_time = getattr(supported_item, "date", datetime.now())
 
         doc_id = (
@@ -70,7 +74,7 @@ class FileFactoryDefault(FileFactoryBase[FileFactorySupportedTypes | T], Generic
             supported_item.id if TelegramMessage.guard(supported_item) else None
         )
 
-        extra = (message_id, doc_id)
+        extra: TelegramFileExtra = (message_id, doc_id)
 
         return vfs.FileLike(
             name=none_fallback(

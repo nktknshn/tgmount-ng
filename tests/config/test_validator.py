@@ -23,4 +23,4 @@ async def test_validator():
     with pytest.raises(Exception):
         await validator.verify_config(cfg)
 
-    pprint(cfg)
+    # pprint(cfg)

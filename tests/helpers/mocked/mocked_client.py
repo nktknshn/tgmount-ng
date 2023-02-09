@@ -79,9 +79,12 @@ class MockedClientReader(TgmountTelegramClientReaderProto):
 class MockedClientWriter(TgmountTelegramClientWriterProto):
     logger = tglog.getLogger("MockedClientWriter")
 
-    def __init__(self, storage: MockedTelegramStorage, sender=None) -> None:
+    def __init__(
+        self, storage: MockedTelegramStorage, sender=None, notify=True
+    ) -> None:
         self._storage = storage
         self._sender: MockedSender | None = sender
+        self._notify = notify
 
     def sender(self, sender: str | MockedSender):
         return MockedClientWriter(
@@ -128,10 +131,12 @@ class MockedClientWriter(TgmountTelegramClientWriterProto):
 
             if mtype is not None and mtype.startswith("video") and not force_document:
                 video = True
+
         file_name = None
         for attr in none_fallback(attributes, []):
             if isinstance(attr, types.DocumentAttributeFilename):
                 file_name = attr.file_name
+
         return await self._storage.create_entity(entity).document(
             text=caption,
             file=file,
@@ -139,9 +144,14 @@ class MockedClientWriter(TgmountTelegramClientWriterProto):
             video_note=video_note,
             video=video,
             sender=self._sender,
-            file_name=none_fallback(file_name, False)
+            file_name=none_fallback(file_name, False),
+            notify=self._notify
             # force_document=force_document,
         )
 
-    async def delete_messages(self, entity: EntityId, *, msg_ids: list[int]):
-        return await self._storage.delete_messages(entity, msg_ids=msg_ids)
+    async def delete_messages(
+        self, entity: EntityId, *, message_ids: list[int], notify=None
+    ):
+        return await self._storage.delete_messages(
+            entity, message_ids=message_ids, notify=none_fallback(notify, self._notify)
+        )

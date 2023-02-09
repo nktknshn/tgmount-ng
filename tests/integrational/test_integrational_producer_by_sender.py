@@ -96,7 +96,7 @@ async def test_producer_by_sender_update(
 
     tgmount.fs.FileSystemOperations.logger.setLevel(logging.INFO)
     # prepared_ctx.debug = logging.DEBUG
-    ctx.debug = logging.DEBUG
+    # ctx.debug = logging.DEBUG
     # logging.root.setLevel(logging.DEBUG)
 
     async def test_update():
@@ -115,14 +115,14 @@ async def test_producer_by_sender_update(
         # producer should add video message
         assert await ctx.listdir_len(expected_dirs[sender], "video") == 1
 
-        await ctx.client.delete_messages(source1.entity_id, msg_ids=[msg.id])
+        await ctx.client.delete_messages(source1.entity_id, message_ids=[msg.id])
 
         # producer should add remove message
         assert await ctx.listdir_len(expected_dirs[sender], "video") == 0
 
         # producer should remove sender's folder if there is no messages left
         for m in senders[sender]:
-            await ctx.client.delete_messages(source1.entity_id, msg_ids=[m.id])
+            await ctx.client.delete_messages(source1.entity_id, message_ids=[m.id])
 
         assert await ctx.listdir_set("/") == set(expected_dirs.values()) - {
             expected_dirs[sender]
@@ -130,7 +130,7 @@ async def test_producer_by_sender_update(
 
         # producer should remove sender's folder if there is no messages left
         await ctx.client.delete_messages(
-            source1.entity_id, msg_ids=[m.id for m in senders[sender2]]
+            source1.entity_id, message_ids=[m.id for m in senders[sender2]]
         )
 
         assert await ctx.listdir_set("/") == set(expected_dirs.values()) - {
@@ -138,55 +138,3 @@ async def test_producer_by_sender_update(
         } - {expected_dirs[sender2]}
 
     await ctx.run_test(test_update)
-
-
-# @pytest.mark.asyncio
-# async def test_producer_by_sender_performance(
-#     fixtures: Fixtures,
-# ):
-#     """Tests updates of the tree"""
-#     ctx = Context.from_fixtures(fixtures)
-
-#     config = create_config(
-#         message_sources={"source1": "source1", "source2": "source2"},
-#         root={
-#             "source1": ORGRANIZED2,
-#         },
-#     )
-
-#     ctx.set_config(config)
-
-#     ctx.create_senders(100)
-
-#     await ctx.send_text_messages(30)
-#     await ctx.send_docs(30)
-
-#     expected_dirs = ctx.expected_dirs
-#     senders = ctx.senders
-#     source1 = ctx.source1
-#     files = fixtures.files
-
-#     # tgmount.fs.logger.setLevel(logging.DEBUG)
-#     # ctx.debug = logging.DEBUG
-
-#     async def test_update():
-#         _iter = iter(senders.keys())
-#         sender = next(_iter)
-#         sender2 = next(_iter)
-#         timer = Timer()
-
-#         # async for path, subdirs, subfiles in prepared_ctx.walkdir("/"):
-#         #     pass
-
-#         timer.start("message 1", log=True)
-
-#         msg = await ctx.client.sender(sender).send_file(
-#             source1.entity_id, file=files.video0
-#         )
-
-#         timer.print()
-
-#     await ctx.run_test(test_update)
-
-
-import time

@@ -28,7 +28,7 @@ def create_config(
     caches=DEFAULT_CACHES,
     root: Mapping = DEFAULT_ROOT,
     config_reader: ConfigRootParserProto = ConfigParser(),
-    extensions: Extensions
+    extensions: Extensions = {}
 ) -> config.Config:
     api_id, api_hash = read_tgapp_api()
 

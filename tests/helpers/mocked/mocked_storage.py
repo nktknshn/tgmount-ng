@@ -175,22 +175,26 @@ class MockedTelegramStorage(MockedStorageProto):
 
         return message
 
-    async def put_message(self, message: MockedMessage):
+    async def put_message(self, message: MockedMessage, notify=True):
         ent = self._entity_by_chat_id[message.chat_id]
 
         message = await ent.add_message(message)
 
-        for s in self._subscriber_per_entity_new[ent.entity_id]:
-            await s(events.NewMessage.Event(message))
+        if notify:
+            for s in self._subscriber_per_entity_new[ent.entity_id]:
+                await s(events.NewMessage.Event(message))
 
         return message
 
-    async def delete_messages(self, entity_id: EntityId, msg_ids: list[int]):
+    async def delete_messages(
+        self, entity_id: EntityId, message_ids: list[int], notify=True
+    ):
         ent = self.get_entity(entity_id)
-        await ent.delete_messages(msg_ids)
+        await ent.delete_messages(message_ids)
 
-        for s in self._subscriber_per_entity_removed[entity_id]:
-            await s(events.MessageDeleted.Event(msg_ids, entity_id))
+        if notify:
+            for s in self._subscriber_per_entity_removed[entity_id]:
+                await s(events.MessageDeleted.Event(message_ids, entity_id))
 
     async def get_messages(
         self, entity_or_chat_id: int | str, ids: list[int] | None = None

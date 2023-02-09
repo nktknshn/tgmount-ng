@@ -6,7 +6,7 @@ from typing import Any, Optional, TypedDict, overload
 import pyfuse3
 from datetime import datetime
 from tgmount import vfs
-from tgmount.util import none_fallback, measure_time
+from tgmount.util import none_fallback, measure_time, yes
 from tgmount.vfs.util import MyLock
 from .fh import FileSystemHandles
 from .inode import InodesRegistry, RegistryItem, RegistryRoot
@@ -16,7 +16,7 @@ from .util import (
     exception_handler,
     flags_to_str,
 )
-
+from tgmount.error import TgmountError
 
 """ 
 TODO
@@ -55,62 +55,16 @@ InodesTree = TypedDict(
 )
 
 
-class FileSystemOperationsMixin:
-    def get_inodes_tree(
-        self: "FileSystemOperations", inode=InodesRegistry.ROOT_INODE  # type: ignore
-    ) -> InodesTree:
-        item = self.inodes.get_item_by_inode(inode)
-
-        if item is None:
-            raise ValueError(f"item with {inode} was not found")
-
-        inodes = self.inodes
-
-        path = none_fallback(inodes.get_item_path(inode), [])
-
-        children = None
-        if self.inodes.was_content_read(inode):
-            children = []
-            children_items = inodes.get_items_by_parent(inode)
-
-            if children_items is None:
-                children_items = []
-
-            for child in children_items:
-                if isinstance(child.data.structure_item, vfs.DirLike):
-                    children.append(self.get_inodes_tree(child.inode))
-                else:
-                    path = [*path, child.name]
-                    children.append(
-                        InodesTreeFile(
-                            inode=child.inode,
-                            path=list(map(self._bytes_to_str, path)),
-                            path_str=inodes.join_path(path).decode("utf-8"),
-                            name=self._bytes_to_str(child.name),
-                            extra=child.data.structure_item.extra,
-                        )
-                    )
-
-        return InodesTree(
-            inode=inode,
-            name=self._bytes_to_str(item.name),
-            path=list(map(self._bytes_to_str, path)),
-            path_str=self._bytes_to_str(inodes.join_path(path)),
-            children=children,
-            extra=item.data.structure_item.extra,
-        )
-
-
 from .logger import logger
 
 
-class FileSystemOperations(pyfuse3.Operations, FileSystemOperationsMixin):
+class FileSystemOperations(pyfuse3.Operations):
     FsRegistryItem = RegistryItem[FileSystemItem] | RegistryRoot[FileSystemItem]
     logger = logger.getChild(f"FileSystemOperations")
 
     def __init__(
         self,
-        root: vfs.DirLike,
+        root: vfs.DirLike | None = None,
     ):
         super(FileSystemOperations, self).__init__()
         self._root = root
@@ -120,9 +74,19 @@ class FileSystemOperations(pyfuse3.Operations, FileSystemOperationsMixin):
             "FileSystemOperations.update_lock", logger=self.logger
         )
 
+        if yes(root):
+            self._init()
+
+    def init_root(self, root: vfs.DirLike):
+        if self._root is not None:
+            raise TgmountError(f"FileSystem is already initiated")
+        self._root = root
         self._init()
 
     def _init(self):
+        if self._root is None:
+            raise TgmountError(f"root is not set!")
+
         self._init_root(self._root)
         self._init_handles()
 
@@ -167,6 +131,9 @@ class FileSystemOperations(pyfuse3.Operations, FileSystemOperationsMixin):
 
     @property
     def vfs_root(self) -> vfs.VfsRoot:
+        if self._root is None:
+            raise TgmountError(f"root is not set!")
+
         return self._root
 
     def create_FileSystemItem(
@@ -195,6 +162,7 @@ class FileSystemOperations(pyfuse3.Operations, FileSystemOperationsMixin):
     def update_subitem(
         self, path: str, new_item: vfs.DirContentItem, parent_inode: int
     ):
+        """ """
         self.logger.debug(
             f"update_subitem: {new_item.name}, parent_inode={parent_inode} ({self.inodes.get_item_path(parent_inode)})"
         )

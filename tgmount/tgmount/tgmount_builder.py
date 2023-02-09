@@ -3,10 +3,11 @@ from tgmount import cache, tgclient, vfs
 from tgmount.tgclient.guards import MessageWithReactions, MessageWithText
 from tgmount.tgclient.message_types import MessageProto
 from tgmount.tgmount.cached_filefactory_factory import CacheFileFactoryFactory
+from tgmount.tgmount.extensions.types import TgmountExtensionProto
 from tgmount.tgmount.file_factory.classifier import ClassifierDefault
 from tgmount.tgmount.file_factory.filefactory import FileFactorySupportedTypes
 from tgmount.tgmount.producers.producer_by_sender import get_message_sender_display_name
-from tgmount.util import yes
+from tgmount.util import none_fallback, yes
 
 from .tgmount_builderbase import TgmountBuilderBase
 from .file_factory import FileFactoryDefault
@@ -90,9 +91,15 @@ MyClassifier.register(MessageWithText)
 
 
 class TgmountBuilder(TgmountBuilderBase):
-    def __init__(self, mount_texts=True) -> None:
+    def __init__(
+        self,
+        mount_texts=True,
+        extensions: list[TgmountExtensionProto] | None = None,
+    ) -> None:
         if not mount_texts:
             MyFileFactoryDefault.unregister(MessageWithText)
+
+        self.extensions = none_fallback(extensions, [])
 
     TelegramClient = tgclient.TgmountTelegramClient
     """ Class used for telegram client """

@@ -18,6 +18,8 @@ from .logger import logger
 class FileSystemOperationsWritable(FileSystemOperationsUpdatable):
     logger = logger.getChild("FileSystemOperationsWritable")
 
+    """ XXX update lock? """
+
     def __init__(self, root: vfs.DirLike):
         super().__init__(root)
 
@@ -62,30 +64,17 @@ class FileSystemOperationsWritable(FileSystemOperationsUpdatable):
             self.logger.error("create(): parent is not a folder")
             raise pyfuse3.FUSEError(errno.EIO)
 
-        # if not parent_dir.data.structure_item.writable:
-        #     self.logger.warning("create(): parent_dir is not writable")
-        #     raise pyfuse3.FUSEError(errno.EPERM)
-
         if not vfs.DirContentWritableProto.guard(
             parent_dir.data.structure_item.content
         ):
-            self.logger.warning("create(): parent_dir content is not writable")
+            self.logger.warning("create(): parent_dir content is not writable.")
             raise pyfuse3.FUSEError(errno.EPERM)
-        try:
-            filelike = await parent_dir.data.structure_item.content.create(
-                self._bytes_to_str(name)
-            )
-        except Exception as e:
-            self.logger.error(f"Error: {e}")
-            raise pyfuse3.FUSEError(errno.EIO)
+
+        filelike = await parent_dir.data.structure_item.content.create(
+            self._bytes_to_str(name)
+        )
 
         item = self.add_subitem(filelike, parent_inode)
-
-        # attrs = self._create_attributes_for_item(filelike, inode=None)
-        # fs_item = self.create_FileSystemItem(filelike, attrs)
-
-        # item = self.inodes.add_item_to_inodes(name, fs_item, parent_inode=parent_inode)
-        # attrs.st_ino = item.inode
 
         fh = self._handles.open_fh(item, None)
 
@@ -94,7 +83,7 @@ class FileSystemOperationsWritable(FileSystemOperationsUpdatable):
     """ 
     Write *buf* into *fh* at *off*.
 
-    *fh* will be an integer filehandle returned by a prior `open` or
+    *fh* will be an integer file handle returned by a prior `open` or
     `create` call.
 
     This method must return the number of bytes written. However, unless the
@@ -119,12 +108,12 @@ class FileSystemOperationsWritable(FileSystemOperationsUpdatable):
         if not vfs.FileLike.guard(
             item.data.structure_item,
         ):
-            self.logger.error(f"release({fh}): is not file")
+            self.logger.error(f"release({fh}): is not a file")
             raise pyfuse3.FUSEError(errno.EIO)
 
-        if not item.data.structure_item.writable:
-            self.logger.error(f"write({fh}): is not writable")
-            raise pyfuse3.FUSEError(errno.EPERM)
+        # if not item.data.structure_item.writable:
+        #     self.logger.error(f"write({fh}): is not writable")
+        #     raise pyfuse3.FUSEError(errno.EPERM)
 
         if not FileContentWritableProto.guard(item.data.structure_item.content):
             self.logger.error(f"write({fh}): content is not writable")
@@ -132,12 +121,65 @@ class FileSystemOperationsWritable(FileSystemOperationsUpdatable):
 
         content = item.data.structure_item.content
 
-        try:
-            byte_written = await content.write(handle, off, buf)
-        except Exception as e:
-            self.logger.error(f"Error while writing: {e}")
-            raise pyfuse3.FUSEError(errno.EIO)
+        byte_written = await content.write(handle, off, buf)
 
         item.data.attrs.st_size = content.size
 
         return byte_written
+
+    @exception_handler
+    async def release(self, fh):
+        item, data = self._handles.get_by_fh(fh)
+
+        return await super().release(fh)
+
+    """ 
+    Remove a (possibly special) file.
+
+    This method must remove the (special or regular) file *name* from the
+    direcory with inode *parent_inode*.  *ctx* will be a `RequestContext`
+    instance.
+
+    If the inode associated with *file* (i.e., not the *parent_inode*) has a
+    non-zero lookup count, or if there are still other directory entries
+    referring to this inode (due to hardlinks), the file system must remove
+    only the directory entry (so that future calls to `readdir` for
+    *parent_inode* will no longer include *name*, but e.g. calls to
+    `getattr` for *file*'s inode still succeed). (Potential) removal of the
+    associated inode with the file contents and metadata must be deferred to
+    the `forget` method to be carried out when the lookup count reaches zero
+    (and of course only if at that point there are no more directory entries
+    associated with the inode either).
+
+    """
+
+    @exception_handler
+    async def unlink(self, parent_inode: int, name: bytes, ctx):
+        parent_item = self._inodes.get_item_by_inode(parent_inode)
+
+        if parent_item is None:
+            self.logger.error(
+                f"unlink({parent_inode}): missing parent_inode={parent_inode}"
+            )
+            raise pyfuse3.FUSEError(errno.ENOENT)
+
+        self.logger.debug(f"= unlink({parent_item.name}, {name})")
+
+        if not vfs.DirLike.guard(parent_item.data.structure_item):
+            self.logger.error("unlink(): parent_item is not DirLike")
+            raise pyfuse3.FUSEError(errno.ENOENT)
+
+        if not self._inodes.was_content_read(parent_item.inode):
+            await self._read_dir_content(parent_item)
+            self._inodes.set_content_read(parent_item.inode)
+
+        if not vfs.DirContentWritableProto.guard(
+            parent_item.data.structure_item.content
+        ):
+            self.logger.warning("create(): parent_item content is not writable.")
+            raise pyfuse3.FUSEError(errno.EPERM)
+
+        await parent_item.data.structure_item.content.remove(self._bytes_to_str(name))
+
+        # item = self._inodes.get_child_item_by_name(name, parent_inode)
+        # self.remove_subitem(parent_inode, name)

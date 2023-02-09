@@ -51,7 +51,7 @@ class FileSystemOperationsUpdate:
 
 
 class FileSystemOperationsUpdatable(FileSystemOperations):
-    def __init__(self, root: vfs.DirLike):
+    def __init__(self, root: vfs.DirLike | None = None):
         super().__init__(root)
 
     async def update(self, update: FileSystemOperationsUpdate):

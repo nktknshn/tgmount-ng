@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Any, Awaitable, Callable, Protocol, Sequence, TypeVar
+from typing import Any, Awaitable, Callable, Protocol, Sequence, TypeVar, Union
 
 from telethon import events
 from tgmount.tgclient.types import EntityId
@@ -57,7 +57,7 @@ class TgmountTelegramClientIterDownloadProto(Protocol):
     @abstractmethod
     def iter_download(
         self,
-        input_location: InputPhotoFileLocation | InputDocumentFileLocation,
+        input_location: Union[InputPhotoFileLocation, InputDocumentFileLocation],
         *,
         offset: int,
         request_size: int,
@@ -114,7 +114,14 @@ class TgmountTelegramClientSendFileProto(Protocol):
 
 class TgmountTelegramClientDeleteMessagesProto(Protocol):
     @abstractmethod
-    async def delete_messages(self, *args, **kwargs):
+    async def delete_messages(
+        self,
+        entity: EntityId,
+        message_ids: list[int],
+        *,
+        revoke: bool = True,
+    ) -> Sequence:
+        # ) -> "typing.Sequence[types.messages.AffectedMessages]":
         pass
 
 
@@ -151,6 +158,6 @@ class TgmountTelegramClientWriterProto(
 
 class TgmountTelegramClientProto(
     TgmountTelegramClientReaderProto,
-    TgmountTelegramClientSendFileProto,
+    TgmountTelegramClientWriterProto,
 ):
     pass

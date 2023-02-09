@@ -18,6 +18,7 @@ from tgmount.config.types import Config, DirConfig
 from tgmount.main.util import mount_ops
 from tgmount.tgclient.guards import MessageWithText
 from tgmount.tgmount.tgmount_builder import MyFileFactoryDefault, TgmountBuilder
+from tgmount.tgmount.tgmount_types import TgmountResources
 from tgmount.tgmount.tgmountbase import TgmountBase, VfsTreeProducer
 from tgmount.util import none_fallback
 
@@ -27,10 +28,14 @@ from ..logger import logger as _logger
 
 
 class MockedVfsTreeProducer(VfsTreeProducer):
-    async def produce_path(self, tree_dir, path: str, vfs_config, ctx):
+    async def produce_path(
+        self, resources: TgmountResources, tree_dir, path: str, vfs_config, ctx
+    ):
         # to test concurrent
         # await asyncio.sleep(0.1)
-        return await super().produce_from_vfs_dir_config(tree_dir, path, vfs_config)
+        return await super().produce_from_vfs_dir_config(
+            resources, tree_dir, path, vfs_config
+        )
 
 
 class MockedTgmountBase(TgmountBase):

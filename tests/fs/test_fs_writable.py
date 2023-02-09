@@ -44,7 +44,7 @@ async def test_FileContentStringWritable(mnt_dir: str, caplog):
 @pytest.mark.asyncio
 async def test_fs_operations1(mnt_dir: str, caplog, files: FixtureFiles):
     ctx = Context(mnt_dir, caplog)
-    ctx.init_logging(logging.DEBUG, debug_fs_ops=True)
+    # ctx.init_logging(logging.DEBUG, debug_fs_ops=True)
 
     dir1_files = [
         vfs.vfile(
@@ -57,7 +57,6 @@ async def test_fs_operations1(mnt_dir: str, caplog, files: FixtureFiles):
             [
                 vfs.DirLike(
                     "dir1",
-                    writable=True,
                     content=DirContentTest(dir1_files),
                 )
             ]
@@ -87,7 +86,7 @@ async def test_fs_operations1(mnt_dir: str, caplog, files: FixtureFiles):
         assert await ctx.read_text("/dir1/file2.txt") == "HELLO"
 
         await asyncio.create_subprocess_shell(
-            f"cp {files.zip_debrecen} {ctx.path('/')}",
+            f"cp {files.zip_debrecen.path} {ctx.path('/')}",
         )
 
     await ctx.run_test(lambda: fs1, test)
@@ -96,7 +95,7 @@ async def test_fs_operations1(mnt_dir: str, caplog, files: FixtureFiles):
 @pytest.mark.asyncio
 async def test_fs_operations2(mnt_dir: str, caplog, files: FixtureFiles):
     ctx = Context(mnt_dir, caplog)
-    ctx.init_logging(logging.DEBUG, debug_fs_ops=True)
+    # ctx.init_logging(logging.DEBUG, debug_fs_ops=True)
     fs1 = FileSystemOperationsWritable(vfs.root(DirContentTest([])))
 
     async def test():

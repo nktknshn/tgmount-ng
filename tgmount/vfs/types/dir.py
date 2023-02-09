@@ -54,6 +54,10 @@ class DirContentWritableProto(DirContentProto[T], Protocol[T]):
     async def create(self, filename: str) -> FileLike:
         pass
 
+    @abstractmethod
+    async def remove(self, filename: str):
+        pass
+
     @staticmethod
     def guard(dc: DirContentProto) -> TypeGuard["DirContentWritableProto"]:
         return hasattr(dc, "create")
@@ -70,7 +74,7 @@ class DirLike:
 
     extra: Optional[Any] = None
 
-    writable: bool = False
+    # writable: bool = False
 
     @staticmethod
     def guard(item: Any) -> TypeGuard["DirLike"]:
@@ -129,3 +133,8 @@ class DirContentListWritable(DirContentList, DirContentWritableProto):
         fl = await self.create_filelike(filename)
         self.content_list.append(fl)
         return fl
+
+    async def remove(self, filename: str):
+        self.content_list = list(
+            filter(lambda item: item.name != filename, self.content_list)
+        )

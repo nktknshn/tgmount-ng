@@ -79,11 +79,11 @@ def sets_difference(
     return unique_left, unique_right, common
 
 
-# def difference(
-#     left: list[T], right: list[T], func: Callable[[T], int]
-# ) -> tuple[Set[T], Set[T], Set[T]]:
-#     unique_left = left - right
-#     unique_right = right - left
-#     common = right.intersection(left)
+def bytearray_write(target: bytearray, offset: int, buf: bytes):
+    target_len = len(target)
 
-#     return unique_left, unique_right, common
+    for idx, b in enumerate(buf):
+        if offset + idx >= target_len:
+            target.append(b)
+        else:
+            target[offset + idx] = b
