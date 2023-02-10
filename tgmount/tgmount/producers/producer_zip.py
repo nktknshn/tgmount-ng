@@ -10,9 +10,9 @@ from tgmount.tgmount.vfs_tree_producer_types import (
     VfsTreeProducerProto,
 )
 from tgmount.tgmount.wrappers.wrapper_zips_as_dirs import WrapperZipsAsDirsProps
-from tgmount.util import yes
+from tgmount.util import nn
 from .logger import module_logger as _logger
-from tgmount.tgmount.vfs_tree import VfsTreeDir
+from tgmount.vfs.vfs_tree import VfsTreeDir
 from tgmount import zip as z
 
 
@@ -88,7 +88,7 @@ class VfsProducerZip(VfsTreeProducerPlainDir):
 
                 dirlike = await self._add_zip_file(item)
 
-                if yes(dirlike):
+                if nn(dirlike):
                     result.append(dirlike)
 
                     if not self._props.hide_zip_files:
@@ -102,7 +102,6 @@ class VfsProducerZip(VfsTreeProducerPlainDir):
 
     async def _add_zip_file(self, zip_file: vfs.FileLike):
         try:
-
             zip_tree = await self._dir_content_zip_factory.get_ziptree(zip_file.content)
         except BadZipFile:
             self._logger.warning(f"{zip_file} is a bad zip file")
@@ -178,7 +177,6 @@ class VfsProducerZip(VfsTreeProducerPlainDir):
         config: Mapping,
         tree_dir: VfsTreeDir,
     ):
-
         return VfsProducerZip(
             tree_dir, vfs_config, props=WrapperZipsAsDirsProps.from_config(config)
         )

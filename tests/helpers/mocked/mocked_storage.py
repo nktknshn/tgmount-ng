@@ -22,7 +22,7 @@ from tgmount.tgclient.types import (
     InputPhotoFileLocation,
     TotalListTyped,
 )
-from tgmount.util import none_fallback, yes
+from tgmount.util import none_fallback, nn
 
 from .mocked_message import MockedMessage
 from .mocked_storage_entity import StorageEntity, get_entity_chat_id
@@ -91,7 +91,7 @@ class MockedTelegramStorage(MockedStorageProto):
         if isinstance(entity_id, int):
             entity = self._entity_by_chat_id.get(entity_id)
 
-        if not yes(entity):
+        if not nn(entity):
             raise ValueError(f"Missing {entity_id}")
 
         return entity

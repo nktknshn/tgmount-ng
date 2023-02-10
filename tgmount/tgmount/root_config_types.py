@@ -4,7 +4,7 @@ from typing import Optional
 from tgmount.tgclient import MessageSourceProto, MessageSourceProto
 from tgmount.tgmount.file_factory import FileFactoryProto, ClassifierBase
 from tgmount.tgmount.filters_types import Filter
-from tgmount.tgmount.tgmount_types import TgmountResources
+from tgmount.tgmount.tgmount_resources import TgmountResources
 from tgmount.util import none_fallback
 
 

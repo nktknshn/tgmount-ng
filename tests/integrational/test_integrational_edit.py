@@ -7,8 +7,8 @@ from tests.integrational.helpers import mdict
 from tests.helpers.config import create_config
 from tests.integrational.context import Context
 from tgmount.fs.operations import FileSystemOperations
-from tgmount.tgmount.root_config_reader import TgmountConfigReader
-from tgmount.tgmount.vfs_tree import VfsTree, VfsTreeDir
+from tgmount.tgmount.root_config_walker import TgmountRootConfigWalker
+from tgmount.vfs.vfs_tree import VfsTree, VfsTreeDir
 
 from .fixtures import *
 

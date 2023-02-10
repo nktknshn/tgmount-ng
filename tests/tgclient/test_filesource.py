@@ -18,7 +18,7 @@ from tgmount.tgclient.source.document import get_document_input_location
 from tgmount.tgclient.source.item import FileSourceItem
 from tgmount.tgclient.source.photo import get_photo_input_location
 from tgmount.tgclient.types import TypeInputFileLocation
-from tgmount.util import yes
+from tgmount.util import nn
 
 from tgmount.vfs.file import read_file_content_bytes
 from ..helpers.mocked import (
@@ -58,10 +58,10 @@ class MockedFileSource(TelegramFilesSource):
     def is_message_downloadable(
         self, message: MessageProto
     ) -> TypeGuard[MessageDownloadable]:
-        return bool(yes(message.document)) or bool(yes(message.photo))
+        return bool(nn(message.document)) or bool(nn(message.photo))
 
     def get_filesource_item(self, message: MessageDownloadable) -> FileSourceItem:
-        if yes(message.document):
+        if nn(message.document):
             return MockedFileSourceItem(
                 id=message.document.id,
                 file_reference=message.document.file_reference,
@@ -71,7 +71,7 @@ class MockedFileSource(TelegramFilesSource):
                     doc, ref
                 ),
             )
-        elif yes(message.photo):
+        elif nn(message.photo):
             return MockedFileSourceItem(
                 id=message.photo.id,
                 file_reference=message.photo.file_reference,

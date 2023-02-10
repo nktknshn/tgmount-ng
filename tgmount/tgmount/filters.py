@@ -1,37 +1,34 @@
 from abc import abstractmethod
-from typing import Any, Iterable, Mapping, Optional, Protocol, Type, TypeVar, Callable
-
-from tgmount.tgclient.guards import *
-
+from typing import Any, Callable, Iterable, Mapping, Optional, Protocol, Type, TypeVar
 
 from tgmount.error import TgmountError
-
+from tgmount.tgclient.guards import *
 
 from .logger import module_logger as _logger
 
-logger = _logger.getChild("filters")
-
-from tgmount.tgclient import guards
-from tgmount.tgclient.guards import MessageDownloadable, MessageWithReactions
-from tgmount.tgclient.message_types import MessageProto
+from tgmount.tgclient.message_types import MessageProto, ReactionEmojiProto
 from tgmount.util import col, func
-from tgmount.util.guards import compose_guards_or, compose_try_gets
+from tgmount.util.guards import compose_guards_or
+
 from .filters_types import (
+    Filter,
+    FilterAllMessagesProto,
     FilterConfigValue,
     FilterContext,
     FilterFromConfigProto,
-    FilterAllMessagesProto,
-    FilterSingleMessage,
-    Filter,
     FilterParser,
+    FilterSingleMessage,
 )
+
+logger = _logger.getChild("filters")
+
 
 T = TypeVar("T")
 
 
 def from_function(
     func: Callable[
-        [Any, FilterContext, "ParseFilter"],
+        [Any, FilterContext, FilterParser],
         Optional["FilterAllMessagesProto"],
     ]
 ) -> Type["FilterFromConfigProto"]:
@@ -67,13 +64,16 @@ class ByReaction(FilterAllMessagesProto):
         )
 
     async def filter(self, messages: Iterable[MessageProto]):
-
         reactions_messages = filter(MessageWithReactions.guard, messages)
 
         result = []
 
         for m in reactions_messages:
             for r in m.reactions.results:
+                # XXX reactionCustomEmoji
+                if not ReactionEmojiProto.guard(r.reaction):
+                    continue
+
                 if r.reaction.emoticon != self.reaction:
                     continue
 
@@ -85,27 +85,26 @@ class ByReaction(FilterAllMessagesProto):
         return result
 
 
-class ByTypes(FilterAllMessagesProto):
+# class ByTypes(FilterAllMessagesProto):
+#     # guards: list[Type[TryGetMethodProto]] = []
+#     #  = SupportsMethod.supported
 
-    # guards: list[Type[TryGetMethodProto]] = []
-    #  = SupportsMethod.supported
+#     def __init__(
+#         self,
+#         filter_types: list[FilterSingleMessage],
+#     ) -> None:
+#         self._filter_types = filter_types
 
-    def __init__(
-        self,
-        filter_types: list[FilterSingleMessage],
-    ) -> None:
-        self._filter_types = filter_types
+#     @staticmethod
+#     def from_config(gs: list[str], ctx: FilterContext, parse_filter: FilterParser):
+#         return ByTypes(
+#             filter_types=[ctx.file_factory.try_get_dict[g] for g in gs],
+#         )
 
-    @staticmethod
-    def from_config(gs: list[str], ctx: FilterContext, parse_filter: FilterParser):
-        return ByTypes(
-            filter_types=[ctx.file_factory.try_get_dict[g] for g in gs],
-        )
-
-    async def filter(self, messages: Iterable[MessageProto]):
-        return list(
-            filter(compose_try_gets(*self._filter_types), messages),
-        )
+#     async def filter(self, messages: Iterable[MessageProto]):
+#         return list(
+#             filter(compose_try_gets(*self._filter_types), messages),
+#         )
 
 
 class OnlyUniqueDocs(FilterAllMessagesProto):
@@ -161,7 +160,7 @@ class ByExtension(FilterAllMessagesProto[MessageProto]):
         self.logger.debug(f"filtering {messages} by extension {self.ext}")
         res: list[MessageProto] = [
             m
-            for m in filter(guards.MessageWithFilename.guard, messages)
+            for m in filter(MessageWithFilename.guard, messages)
             if m.file.ext == self.ext
         ]
         self.logger.debug(f"result={res}")
@@ -219,7 +218,6 @@ class And(FilterAllMessagesProto):
         return And(filters=parse_filter(gs))
 
     async def filter(self, messages: Iterable[MessageProto]):
-
         if len(self.filters) == 0:
             return messages
 
@@ -286,7 +284,7 @@ class First(FilterAllMessagesProto):
         return list(messages)[: self._count]
 
 
-def from_guard(g: Callable[[Any], bool]) -> Type[Filter]:
+def from_guard_function(g: Callable[[Any], bool]) -> Type[Filter]:
     class FromGuardFunc(FilterAllMessagesProto):
         def __init__(self, **kwargs) -> None:
             pass
@@ -317,32 +315,31 @@ def from_context_classifier(klass_name: str) -> Type[FilterFromConfigProto]:
     def from_config(
         d, ctx: FilterContext, parse_filter: FilterParser
     ) -> Optional[Filter]:
-
         func = ctx.classifier.try_get_guard(klass_name)
 
         if func is not None:
-            return from_guard(func).from_config(d, ctx, parse_filter)
+            return from_guard_function(func).from_config(d, ctx, parse_filter)
 
     return from_function(from_config)
 
 
 telegram_filters_to_filter_type: Mapping[str, Type[Filter]] = {
-    "InputMessagesFilterPhotos": from_guard(MessageWithCompressedPhoto.guard),
-    "InputMessagesFilterVideo": from_guard(MessageWithVideo.guard),
-    "InputMessagesFilterPhotoVideo": from_guard(
+    "InputMessagesFilterPhotos": from_guard_function(MessageWithCompressedPhoto.guard),
+    "InputMessagesFilterVideo": from_guard_function(MessageWithVideo.guard),
+    "InputMessagesFilterPhotoVideo": from_guard_function(
         compose_guards_or(MessageWithCompressedPhoto.guard, MessageWithVideo.guard)
     ),
     # "InputMessagesFilterDocument": from_guard(MessageWithDocument.guard),
-    "InputMessagesFilterDocument": from_guard(
+    "InputMessagesFilterDocument": from_guard_function(
         compose_guards_or(
             MessageWithOtherDocument.guard, MessageWithDocumentImage.guard
         )
     ),
-    "InputMessagesFilterGif": from_guard(MessageWithAnimated.guard),
-    "InputMessagesFilterVoice": from_guard(MessageWithVoice.guard),
-    "InputMessagesFilterMusic": from_guard(MessageWithMusic.guard),
-    "InputMessagesFilterRoundVoice": from_guard(
+    "InputMessagesFilterGif": from_guard_function(MessageWithAnimated.guard),
+    "InputMessagesFilterVoice": from_guard_function(MessageWithVoice.guard),
+    "InputMessagesFilterMusic": from_guard_function(MessageWithMusic.guard),
+    "InputMessagesFilterRoundVoice": from_guard_function(
         compose_guards_or(MessageWithKruzhochek.guard, MessageWithVoice.guard)
     ),
-    "InputMessagesFilterRoundVideo": from_guard(MessageWithKruzhochek.guard),
+    "InputMessagesFilterRoundVideo": from_guard_function(MessageWithKruzhochek.guard),
 }

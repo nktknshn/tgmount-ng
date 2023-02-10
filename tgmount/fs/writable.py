@@ -3,24 +3,24 @@ import os
 from dataclasses import dataclass, field
 
 import pyfuse3
-from tgmount.fs.update import FileSystemOperationsUpdatable
-from tgmount.fs.util import exception_handler, flags_to_str
 
 import tgmount.vfs as vfs
 from tgmount.util.col import map_keys
 from tgmount.vfs.types.file import FileContentWritableProto
 
 from .inode import InodesRegistry, RegistryItem
-from .operations import FileSystemOperations
 from .logger import logger
+from .readable import FileSystemOperationsBase
+from .update import FileSystemOperationsUpdatable
+from .util import exception_handler, flags_to_str
 
 
-class FileSystemOperationsWritable(FileSystemOperationsUpdatable):
+class FileSystemOperationsWritable(FileSystemOperationsBase):
     logger = logger.getChild("FileSystemOperationsWritable")
 
     """ XXX update lock? """
 
-    def __init__(self, root: vfs.DirLike):
+    def __init__(self, root: vfs.DirLike | None):
         super().__init__(root)
 
     """ 
@@ -49,7 +49,7 @@ class FileSystemOperationsWritable(FileSystemOperationsUpdatable):
         parent_dir = self.inodes.get_item_by_inode(parent_inode)
 
         if parent_dir is None:
-            self.logger.error("create(): missing parent")
+            self.logger.error(f"create({parent_inode}): missing parent")
             raise pyfuse3.FUSEError(errno.EIO)
 
         self.logger.debug(
@@ -57,14 +57,14 @@ class FileSystemOperationsWritable(FileSystemOperationsUpdatable):
         )
 
         if not flags & os.O_WRONLY:
-            self.logger.warning("create(): write only creation is only supported")
+            self.logger.warning("create(): write-only creation is only supported.")
             raise pyfuse3.FUSEError(errno.EPERM)
 
         if not vfs.DirLike.guard(parent_dir.data.structure_item):
             self.logger.error("create(): parent is not a folder")
             raise pyfuse3.FUSEError(errno.EIO)
 
-        if not vfs.DirContentWritableProto.guard(
+        if not vfs.DirContentCanCreateProto.guard(
             parent_dir.data.structure_item.content
         ):
             self.logger.warning("create(): parent_dir content is not writable.")
@@ -100,7 +100,7 @@ class FileSystemOperationsWritable(FileSystemOperationsUpdatable):
         item, handle = self._handles.get_by_fh(fh)
 
         if item is None:
-            self.logger.error(f"write(fh={fh}): missing item in open handles")
+            self.logger.error(f"write(fh={fh}): missing item in open handles.")
             return
 
         self.logger.debug(f"writing into {item.name}. inode = {item.inode}")
@@ -108,18 +108,14 @@ class FileSystemOperationsWritable(FileSystemOperationsUpdatable):
         if not vfs.FileLike.guard(
             item.data.structure_item,
         ):
-            self.logger.error(f"release({fh}): is not a file")
+            self.logger.error(f"write({item.name}): is not a file")
             raise pyfuse3.FUSEError(errno.EIO)
 
-        # if not item.data.structure_item.writable:
-        #     self.logger.error(f"write({fh}): is not writable")
-        #     raise pyfuse3.FUSEError(errno.EPERM)
-
-        if not FileContentWritableProto.guard(item.data.structure_item.content):
-            self.logger.error(f"write({fh}): content is not writable")
-            raise pyfuse3.FUSEError(errno.EPERM)
-
         content = item.data.structure_item.content
+
+        if not FileContentWritableProto.guard(content):
+            self.logger.error(f"write({item.name}): content is not writable.")
+            raise pyfuse3.FUSEError(errno.EPERM)
 
         byte_written = await content.write(handle, off, buf)
 
@@ -173,13 +169,15 @@ class FileSystemOperationsWritable(FileSystemOperationsUpdatable):
             await self._read_dir_content(parent_item)
             self._inodes.set_content_read(parent_item.inode)
 
-        if not vfs.DirContentWritableProto.guard(
+        if not vfs.DirContentCanRemoveProto.guard(
             parent_item.data.structure_item.content
         ):
-            self.logger.warning("create(): parent_item content is not writable.")
+            self.logger.warning("create(): parent_item content can't remove.")
             raise pyfuse3.FUSEError(errno.EPERM)
 
-        await parent_item.data.structure_item.content.remove(self._bytes_to_str(name))
+        await parent_item.data.structure_item.content.remove(
+            self._bytes_to_str(name),
+        )
 
         # item = self._inodes.get_child_item_by_name(name, parent_inode)
         # self.remove_subitem(parent_inode, name)

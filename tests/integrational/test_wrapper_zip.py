@@ -2,21 +2,13 @@ import logging
 import os
 import pytest
 
-from pprint import pprint
-from tgmount import vfs, zip as z
+from tgmount import zip as z
 from tests.integrational.helpers import mdict
 from tests.helpers.config import create_config
-from tgmount.tgmount.vfs_tree_types import (
-    TreeEventNewDirs,
-    TreeEventNewItems,
-    TreeEventRemovedDirs,
-)
-from tgmount.tgmount.wrappers.wrapper_exclude_empty_dirs import WrapperEmpty
+
 
 from .fixtures import *
 from .context import Context
-
-from ..logger import logger as _logger
 
 
 root_cfg1 = {

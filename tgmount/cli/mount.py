@@ -13,7 +13,7 @@ from tgmount.tgclient.fetcher import TelegramMessagesFetcher
 from tgmount.tgmount.tgmount_builder import TgmountBuilder
 from tgmount.error import TgmountError
 from tgmount.tgmount.tgmount_providers import ProducersProvider
-from tgmount.util import int_or_string, map_none, yes
+from tgmount.util import int_or_string, map_none, nn
 from .logger import logger
 
 
@@ -106,7 +106,7 @@ async def mount(
         ".sysinfo": {"producer": "SysInfo", "source": args.entity},
     }
 
-    if yes(args.root_config, str):
+    if nn(args.root_config, str):
         try:
             with open(args.root_config, "r+") as f:
                 cfg_dict: dict = yaml.safe_load(f)
@@ -114,7 +114,7 @@ async def mount(
         except Exception as e:
             raise TgmountError(f"Error load config file:\n\n{e}")
 
-    if yes(args.producer, str):
+    if nn(args.producer, str):
         producer = builder.producers.get_by_name(args.producer)
 
         if producer is None:
@@ -126,7 +126,7 @@ async def mount(
     if session is None:
         raise TgmountError(f"Missing session")
 
-    if yes(producer):
+    if nn(producer):
         root_content["producer"] = {
             args.producer: {"fix_id3v1": not args.no_fix_id3v1},
         }

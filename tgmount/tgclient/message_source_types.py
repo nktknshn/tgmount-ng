@@ -21,7 +21,7 @@ M = TypeVar("M", bound=WithId)
 class MessageSourceProto(Generic[M], Protocol):
     event_new_messages: SubscribableProto[list[M]]
     event_removed_messages: SubscribableProto[list[M]]
-    event_edited_messages: SubscribableProto[list[tuple[M, M]]]
+    event_edited_messages: SubscribableProto[list[M]]
 
     @abstractmethod
     async def get_messages(self) -> list[M]:

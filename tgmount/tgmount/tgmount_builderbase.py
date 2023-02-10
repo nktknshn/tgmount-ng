@@ -4,35 +4,31 @@ from typing import Protocol, Type
 
 from tgmount import config, fs, tgclient
 from tgmount.common.extra import Extra
-from tgmount.tgclient.events_disptacher import (
-    TelegramEventsDispatcher,
-)
+from tgmount.error import TgmountError
+from tgmount.tgclient.events_disptacher import TelegramEventsDispatcher
 from tgmount.tgclient.fetcher import TelegramMessagesFetcher
 from tgmount.tgclient.source.util import BLOCK_SIZE
-from tgmount.tgmount.cached_filefactory_factory import (
-    CacheFileFactoryFactory,
-)
+from tgmount.tgmount.cached_filefactory_factory import CacheFileFactoryFactory
 from tgmount.tgmount.extensions.types import TgmountExtensionProto
-
+from tgmount.tgmount.producers.producer_sysinfo import VfsTreeProducerSysInfo
 from tgmount.tgmount.providers.provider_vfs_wrappers import ProviderVfsWrappersBase
-from tgmount.tgmount.root_config_reader import TgmountConfigReader
-from tgmount.tgmount.vfs_tree import VfsTree
+from tgmount.tgmount.root_config_walker import TgmountRootConfigWalker
 from tgmount.tgmount.vfs_tree_producer import VfsTreeProducer
-from tgmount.util import get_bytes_count, none_fallback, yes
+from tgmount.util import get_bytes_count, none_fallback, nn
+from tgmount.vfs.vfs_tree import VfsTree
 
-from .file_factory import classifier, FileFactoryDefault
+from .file_factory import FileFactoryDefault, classifier
+from .logger import module_logger as logger
 from .providers.provider_caches import CachesTypesProviderProto
 from .providers.provider_filters import FilterProviderProto
 from .providers.provider_producers import ProducersProviderBase
 from .providers.provider_sources import SourcesProvider
-
-from .tgmount_types import TgmountResources
+from .tgmount_resources import TgmountResources
 from .tgmountbase import TgmountBase
-from .logger import module_logger as logger
 
 
 class TgmountBuilderBase(abc.ABC):
-    """Construct TgmountBase from a config"""
+    """Constructs TgmountBase from a config"""
 
     logger = logger.getChild(f"TgmountBuilderBase")
 
@@ -48,9 +44,7 @@ class TgmountBuilderBase(abc.ABC):
     VfsTree = VfsTree
     VfsTreeProducer = VfsTreeProducer
 
-    FileSystemOperations: Type[
-        fs.FileSystemOperationsUpdatable
-    ] = fs.FileSystemOperationsUpdatable
+    FileSystemOperations: Type[fs.FileSystemOperations] = fs.FileSystemOperations
 
     classifier: classifier.ClassifierBase
     caches: CachesTypesProviderProto
@@ -71,7 +65,7 @@ class TgmountBuilderBase(abc.ABC):
 
     async def create_vfs_tree(self):
         for ext in self.extensions:
-            if yes(ext.VfsTree):
+            if nn(ext.VfsTree):
                 return ext.VfsTree()
 
         return self.VfsTree()
@@ -114,41 +108,46 @@ class TgmountBuilderBase(abc.ABC):
     ):
         return self.TelegramMessagesFetcher(client, msc)
 
-    async def create_tgmount_resources(self, client, cfg: config.Config, **kwargs):
-        sources_used_in_root = await TgmountConfigReader().get_used_sources(cfg.root)
+    async def create_tgmount_resources(self):
+        config = self.config
+        client = self.client
 
-        files_source = await self.create_file_source(cfg, client)
-        file_factory = await self.create_file_factory(cfg, client, files_source)
+        sources_used_in_root = await TgmountRootConfigWalker().get_used_sources(
+            config.root
+        )
+
+        files_source = await self.create_file_source(config, client)
+        file_factory = await self.create_file_factory(config, client, files_source)
 
         source_provider = SourcesProvider()
 
         fetchers_dict = {}
 
-        for k, msc in cfg.message_sources.sources.items():
+        for k, msc in config.message_sources.sources.items():
             if k not in list(sources_used_in_root):
                 continue
 
-            message_source = await self.create_message_source(cfg, client, msc)
+            message_source = await self.create_message_source(config, client, msc)
 
             message_source.add_filter(file_factory.supports)
 
-            if yes(msc.filter):
+            if nn(msc.filter):
                 tg_filter = self.filters.telegram_filters.get(msc.filter)
 
-                if yes(tg_filter):
+                if nn(tg_filter):
                     message_source.add_filter(tg_filter())
 
-            fetcher = await self.create_fetcher(cfg, client, msc, message_source)
+            fetcher = await self.create_fetcher(config, client, msc, message_source)
 
             fetchers_dict[k] = fetcher
 
             source_provider.add_source(k, message_source)
 
         cached_filefactory_factory = await self.create_cached_filefactory_factory(
-            cfg, client
+            config, client
         )
 
-        caches_config = cfg.caches.caches if cfg.caches is not None else {}
+        caches_config = config.caches.caches if config.caches is not None else {}
 
         for cache_id, cache_config in caches_config.items():
             await self.cached_filefactory_factory.create_cached_filefactory(
@@ -157,60 +156,71 @@ class TgmountBuilderBase(abc.ABC):
 
         resources = TgmountResources(
             message_sources=source_provider,
-            fetchers_dict=fetchers_dict,
+            fetchers=fetchers_dict,
             caches=cached_filefactory_factory,
             file_factory=file_factory,
             filters_provider=self.filters,
             producers=self.producers,
             classifier=self.classifier,
             vfs_wrappers=self.wrappers,
-            # extra=await self.create_extra(),
+            extra=Extra(),
         )
-
-        await self.create_extra(resources)
 
         return resources
 
-    async def create_extra(self, resources: TgmountResources):
-        resources.extra.create("sysinfo")
-        resources.extra.sysinfo.get_tgm = lambda: self.tgm
+    async def extend_resources_extra(self):
+        VfsTreeProducerSysInfo.create_sysinfo_extra(
+            self.resources.extra, self.resources, self.tgm.fs
+        )
 
         for ext in self.extensions:
-            await ext.extend_resources(self.config, self, resources)
+            await ext.extend_resources(self)
 
-    async def crate_filesystem_operations(self):
-        for ext in self.extensions:
-            if yes(ext.FileSystemOperations):
-                return ext.FileSystemOperations(None)
+    async def create_filesystem_operations(self):
+        # for ext in self.extensions:
+        #     if yes(ext.FileSystemOperations):
+        #         return ext.FileSystemOperations(None)
 
         return self.FileSystemOperations(None)
 
-    async def create_tgmount(self, cfg: config.Config, **kwargs) -> TgmountBase:
-        self.client = await self.create_client(cfg, **kwargs)
-        self.config = cfg
-        self.resources = await self.create_tgmount_resources(self.client, cfg)
+    async def create_vfs_tree_producer(self) -> VfsTreeProducer:
+        return self.VfsTreeProducer(extensions=self.extensions)
 
-        self.tgm = tgm = self.TgmountBase(
+    async def create_tgmountbase(self):
+        vfs_tree_producer = await self.create_vfs_tree_producer()
+        vfs_tree = await self.create_vfs_tree()
+        events_dispatcher = self.TelegramEventsDispatcher()
+        fs = await self.create_filesystem_operations()
+
+        return self.TgmountBase(
             client=self.client,
             resources=self.resources,
-            root_config=cfg.root,
-            mount_dir=cfg.mount_dir,
+            root_config=self.config.root,
+            mount_dir=self.config.mount_dir,
+            fs=fs,
+            vfs_tree=vfs_tree,
+            vfs_tree_producer=vfs_tree_producer,
+            events_dispatcher=events_dispatcher,
         )
 
-        tgm.producer = self.VfsTreeProducer(
-            extensions=self.extensions,
-        )
-        tgm.vfs_tree = await self.create_vfs_tree()
-        tgm.events_dispatcher = self.TelegramEventsDispatcher()
+    async def create_tgmount(self, cfg: config.Config, **kwargs) -> TgmountBase:
+        self.config = cfg
+        self.client = await self.create_client(cfg, **kwargs)
+        self.resources = await self.create_tgmount_resources()
+        self.tgm = tgm = await self.create_tgmountbase()
 
+        await self.extend_resources_extra()
+
+        # subscribe for the events that are triggered by file system
+        # like upload or file remove
         tgm.vfs_tree.subscribe(tgm.on_event_from_fs)
 
-        tgm.fs = await self.crate_filesystem_operations()
-
+        # subscribe tgm
         for k, msc in cfg.message_sources.sources.items():
             ms = self.resources.message_sources.get(k)
 
             if ms is None:
+                # message source hasn't been used in root config
                 continue
 
             updates = none_fallback(msc.updates, True)
@@ -233,6 +243,6 @@ class TgmountBuilderBase(abc.ABC):
             tgm.events_dispatcher.connect(msc.entity, ms)
 
         for ext in self.extensions:
-            await ext.extend_tgmount(cfg, self, self.resources, tgm)
+            await ext.extend_tgmount(cfg, tgm)
 
         return tgm

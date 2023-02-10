@@ -80,7 +80,7 @@ class MountContext:
         return aiofiles.open(self._path(path), *args)
 
     async def remove(self, path: str, *args):
-        return await aiofiles.os.remove(self._path(path), *args)
+        return await aiofiles.os.remove(self._path(path), *args)  # type: ignore
 
     async def read_text(self, path: str) -> str:
         async with aiofiles.open(self._path(path), "r") as f:

@@ -10,17 +10,16 @@ O = TypeVar("O")
 
 
 @overload
-def yes(value: Optional[T]) -> TypeGuard[T]:
+def nn(value: Optional[T]) -> TypeGuard[T]:
     ...
 
 
 @overload
-def yes(value: Optional[Any], typ: Type[O]) -> TypeGuard[O]:
+def nn(value: Optional[Any], typ: Type[O]) -> TypeGuard[O]:
     ...
 
 
-def yes(value: Optional[T], typ: Optional[Type[O]] = None) -> TypeGuard[O | T]:
-
+def nn(value: Optional[T], typ: Optional[Type[O]] = None) -> TypeGuard[O | T]:
     if typ is None:
         return value is not None
 
@@ -45,7 +44,6 @@ def map_none(value: Optional[T], func: Callable[[T], O]) -> O | None:
 
 
 def map_none_else(value: Optional[T], func: Callable[[T], O], default: O) -> O:
-
     return none_fallback(map_none(value, func), default)
 
 

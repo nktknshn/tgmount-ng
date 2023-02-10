@@ -6,9 +6,11 @@ from .dir import (
     DirLike,
     dir_content,
     vdir,
-    DirContentWritableProto,
+    DirContentCanCreateProto,
     DirContentListWritable,
 )
+
+from .types.dir import DirContentCanRemoveProto
 from .dir_util import (
     dir_content_from_fs,
     dir_content_to_tree,
@@ -35,6 +37,7 @@ from .file import (
     file_content,
     FileContentStringProto,
     FileContentStringWritable,
+    FileContentWritableConsumer,
 )
 
 from .lookup import dirlike_ls as ls, dirlike_get_by_path_list
@@ -59,5 +62,6 @@ from .util import (
     path_remove_slash,
     path_join,
 )
+from .vfs_tree import VfsTree, VfsTreeDir, VfsTreeDirContent
 
 dir_content_from_tree = dir_content_from_source

@@ -5,7 +5,7 @@ from tgmount.config import *
 from tgmount.config.config import ConfigReader, DirConfigReader
 from tgmount.tgmount.extensions.writable import (
     TgmountExtensionWritable,
-    WritableDirConfig,
+    WritableDirConfigExtra,
 )
 
 
@@ -36,14 +36,14 @@ def test_reader1():
 
     assert (
         cfg.root.extra.get(
-            TgmountExtensionWritable.prop,
-            WritableDirConfig,
+            TgmountExtensionWritable.extension_id,
+            WritableDirConfigExtra,
         ).upload
         == True
     )
     assert (
         cfg.root.other_keys["folder2"]
-        .extra.get(TgmountExtensionWritable.prop, WritableDirConfig)
+        .extra.get(TgmountExtensionWritable.extension_id, WritableDirConfigExtra)
         .upload
         == False
     )

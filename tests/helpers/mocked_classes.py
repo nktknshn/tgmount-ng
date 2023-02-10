@@ -8,7 +8,7 @@
 # from tgmount.tgclient.message_source import MessageSourceSimple
 # from tgmount.tgmount.builder import TgmountBuilder
 # from tgmount.tgmount.file_factory.types import FileContentProviderProto
-# from tgmount.tgmount.tgmount_types import TgmountResources
+# from tgmount.tgmount.tgmount_resources import TgmountResources
 
 # from ..config.fixtures import config_from_file
 

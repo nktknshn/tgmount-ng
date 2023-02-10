@@ -5,15 +5,15 @@ from zipfile import BadZipFile
 from tgmount import vfs
 from tgmount import zip as z
 
-from ..vfs_tree import VfsTreeDir
-from ..vfs_tree_types import (
+from tgmount.vfs.vfs_tree import VfsTreeDir
+from tgmount.vfs.vfs_tree_types import (
     TreeEventNewDirs,
     TreeEventNewItems,
     TreeEventRemovedDirs,
     TreeEventRemovedItems,
     TreeEventType,
 )
-from ..vfs_tree_wrapper_types import VfsTreeWrapperProto
+from tgmount.vfs.vfs_tree_wrapper_types import VfsTreeWrapperProto
 from .logger import logger as _logger
 
 
@@ -150,7 +150,6 @@ class WrapperZipsAsDirs(VfsTreeWrapperProto):
             result_event.new_items.append(item)
 
     async def _add_zip_file(self, zip_file_like: vfs.FileLike) -> vfs.DirLike:
-
         zip_tree = await self._dir_content_zip_factory.get_ziptree(
             zip_file_like.content
         )
@@ -208,7 +207,6 @@ class WrapperZipsAsDirs(VfsTreeWrapperProto):
     async def wrap_dir_content(
         self, dir_content: vfs.DirContentProto
     ) -> vfs.DirContentProto:
-
         items = []
 
         for item in await vfs.dir_content_read(dir_content):

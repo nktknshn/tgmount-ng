@@ -1,6 +1,6 @@
 from typing import Mapping
 from tgmount import config
-from tgmount.config.config import ConfigParser, Extensions
+from tgmount.config.config import ConfigParser, ConfigExtensions
 from tgmount.config.config_type import ConfigRootParserProto
 from tgmount.main.util import read_tgapp_api
 
@@ -28,7 +28,7 @@ def create_config(
     caches=DEFAULT_CACHES,
     root: Mapping = DEFAULT_ROOT,
     config_reader: ConfigRootParserProto = ConfigParser(),
-    extensions: Extensions = {}
+    extensions: ConfigExtensions = {}
 ) -> config.Config:
     api_id, api_hash = read_tgapp_api()
 

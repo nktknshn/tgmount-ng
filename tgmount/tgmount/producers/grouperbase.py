@@ -14,8 +14,8 @@ from tgmount.util.timer import Timer
 
 from ..producers.producer_plain import VfsTreeProducerPlainDir
 from ..root_config_types import RootConfigWalkingContext
-from ..tgmount_types import TgmountResources
-from ..vfs_tree import VfsTreeDir
+from ..tgmount_resources import TgmountResources
+from tgmount.vfs.vfs_tree import VfsTreeDir
 from ..vfs_tree_producer import VfsTreeProducer
 from ..vfs_tree_producer_types import VfsTreeProducerConfig
 from .logger import module_logger as _logger
@@ -85,8 +85,8 @@ class VfsTreeProducerGrouperBase(abc.ABC):
 
         await self.VfsTreeProducer().produce(
             self._resources,
-            tree_dir,
             self._dir_config,
+            tree_dir,
             ctx=RootConfigWalkingContext.from_resources(
                 self._resources, recursive_source=dir_source
             ),

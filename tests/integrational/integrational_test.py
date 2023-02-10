@@ -18,7 +18,7 @@ from tgmount.config.types import Config, DirConfig
 from tgmount.main.util import mount_ops
 from tgmount.tgclient.guards import MessageWithText
 from tgmount.tgmount.tgmount_builder import MyFileFactoryDefault, TgmountBuilder
-from tgmount.tgmount.tgmount_types import TgmountResources
+from tgmount.tgmount.tgmount_resources import TgmountResources
 from tgmount.tgmount.tgmountbase import TgmountBase, VfsTreeProducer
 from tgmount.util import none_fallback
 

@@ -140,6 +140,17 @@ class MessagesCollection(Generic[M]):
         except KeyError:
             return None
 
+    def get_by_ids_with_none(self, ids: list[int]) ->list[ M | None]:
+        result = []
+
+        for idx in ids:
+            try:
+                result.append(self._messages[idx])
+            except KeyError:
+                result.append(None)
+
+        return result
+
     def __len__(self):
         return len(self._messages)
 

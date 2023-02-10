@@ -3,7 +3,7 @@ from telethon import types
 from tgmount.tgclient.message_types import PhotoSizeProto
 from tgmount.tgclient.types import DocId
 
-from tgmount.util import random_int, yes
+from tgmount.util import random_int, nn
 
 from .mocked_storage_files_document import StorageItemDocument
 from .mocked_storage_files_photo import StorageItemPhoto
@@ -91,10 +91,9 @@ class StorageFiles:
         id: DocId,
         klass: Type[StorageItemDocument] | Type[StorageItemPhoto] | None = None,
     ) -> StorageItemDocument | StorageItemPhoto | None:
-
         item = self._files.get(id)
 
-        if yes(klass) and not isinstance(item, klass):
+        if nn(klass) and not isinstance(item, klass):
             raise RuntimeError(f"Item is not {klass}")
 
         return item

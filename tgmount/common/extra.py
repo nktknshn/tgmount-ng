@@ -1,5 +1,6 @@
 from typing import Any, Type, TypeVar, cast
 from tgmount.error import TgmountError
+from tgmount.util import nn
 
 T = TypeVar("T")
 
@@ -50,11 +51,25 @@ class Extra:
 
         return extra
 
-    def get(self, name: str, type: Type[T]) -> T | None:
+    def get(self, name: str, typ: Type[T]) -> T:
+        v = self.try_get(name, typ)
+
+        if v is None:
+            raise TgmountError(f"Missing extra {name}")
+
+        return v
+
+    def try_get(self, name: str, typ: Type[T]) -> T | None:
         try:
             return cast(T, getattr(self, name))
         except AttributeError:
             return None
+
+    def get_or_create(self, name: str, typ: Type[T]) -> T:
+        try:
+            return cast(T, getattr(self, name))
+        except AttributeError:
+            return self.create(name, typ)
 
     def put(self, name: str, extra: Namespace):
         self._extra[name] = extra

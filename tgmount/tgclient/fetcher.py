@@ -5,7 +5,7 @@ from tgmount import config
 from tgmount.tgclient.message_types import MessageProto
 from tgmount.tgclient.types import TotalListTyped
 from tgmount.error import TgmountError
-from tgmount.util import yes
+from tgmount.util import nn
 
 from .client_types import TgmountTelegramClientGetMessagesProto
 from .logger import logger as module_logger
@@ -67,7 +67,7 @@ class TelegramMessagesFetcher(TelegramMessagesFetcherProto):
 
         filt = None
 
-        if yes(self.cfg.filter):
+        if nn(self.cfg.filter):
             filt = self._get_filter(self.cfg.filter)
 
         return await self.client.get_messages(

@@ -1,8 +1,9 @@
 from typing import Callable, Generic, Iterable, TypeVar
 from tgmount.common.filter import FilterAllMessagesProto, FilterSingleMessage
+from tgmount.tgclient.message_types import MessageProto
 from tgmount.tgclient.messages_collection import MessagesCollection, WithId, message_ids
 
-from tgmount.util import none_fallback
+from tgmount.util import none_fallback, nn
 
 from .logger import logger as _logger
 from .message_source_types import MessageSourceProto
@@ -69,24 +70,35 @@ class MessageSource(MessageSourceProto, Generic[M]):
 
         return res
 
-    async def edit_messages(self, messages: Iterable[M]):
+    async def edit_messages(self, edited_messages: Iterable[M]):
         if self._messages is None:
             self._logger.error(f"edit_messages(). Messages are not initiated yet")
             return
 
-        filtered = await self._filter_messages(messages)
+        filtered = await self._filter_messages(edited_messages)
 
-        old_messages = self._messages.get_by_ids([m.id for m in filtered])
+        old_messages = self._messages.get_by_ids_with_none([m.id for m in filtered])
+
+        _old = []
+        _new = []
+        _not_found = []
+
+        for old, new in zip(old_messages, filtered):
+            if nn(old):
+                _old.append(old)
+                _new.append(new)
+            else:
+                _not_found.append(new)
 
         if old_messages is None:
-            self._logger.error(
-                f"edit_messages({messages}) Some of the edited messages has not been found in the message source"
+            self._logger.warning(
+                f"edit_messages(). Some of the edited messages has not been found in the message source: {[MessageProto.repr_short(m) for m in _not_found]}"
             )
             return
 
         self._messages.add_messages(filtered, overwright=True)
 
-        await self.event_edited_messages.notify(old_messages, filtered)
+        await self.event_edited_messages.notify(_old, _new)
 
     async def add_messages(self, messages: Iterable[M]):
         if self._messages is None:

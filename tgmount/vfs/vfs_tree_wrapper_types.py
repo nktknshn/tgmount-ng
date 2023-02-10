@@ -1,8 +1,7 @@
 from abc import abstractclassmethod, abstractmethod
-from typing import Union
 
-# from tgmount.tgmount.vfs_tree_types import TreeEventType
 from tgmount import vfs
+from .vfs_tree_types import TreeEventType
 
 
 class VfsTreeWrapperProto:

@@ -1,3 +1,24 @@
+from typing import Any, Optional, TypedDict
+from tgmount import vfs
+
+from tgmount.util import none_fallback
+
+
+InodesTreeFile = TypedDict(
+    "InodesTreeFile", inode=int, path=list[str], path_str=str, name=str, extra=Any
+)
+
+InodesTree = TypedDict(
+    "InodesTree",
+    inode=int,
+    name=str,
+    path=list[str],
+    path_str=str,
+    extra=Any,
+    children=Optional[list["InodesTree | InodesTreeFile"]],
+)
+
+
 class FileSystemOperationsMixin:
     def get_inodes_tree(
         self: "FileSystemOperations", inode=InodesRegistry.ROOT_INODE  # type: ignore

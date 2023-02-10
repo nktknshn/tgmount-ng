@@ -123,7 +123,8 @@ class MessageWithReactions(
 
     @staticmethod
     def guard(msg: Any) -> TypeGuard["MessageWithReactions"]:
-        return msg.reactions is not None
+        # XXX reactionCustomEmoji
+        return msg.reactions is not None and msg.reactions
 
 
 class MessageWithDocument(
@@ -326,7 +327,6 @@ class MessageWithVideo(
 
     @staticmethod
     def guard(msg: Any) -> TypeGuard["MessageWithVideo"]:
-
         return TelegramMessage.guard(msg) and (
             bool(msg.video) or MessageWithVideoDocument.guard(msg) or bool(msg.gif)
         )
@@ -398,7 +398,6 @@ class MessageWithAnimated(
 
     @staticmethod
     def guard(msg: Any) -> TypeGuard["MessageWithAnimated"]:
-
         return TelegramMessage.guard(msg) and msg.gif is not None
 
     @staticmethod
@@ -493,7 +492,6 @@ class MessageWithOtherDocument(
 
     @staticmethod
     def guard(msg: Any) -> TypeGuard["MessageWithOtherDocument"]:
-
         return (
             # TelegramMessage.guard(msg)
             # and msg.document is not None

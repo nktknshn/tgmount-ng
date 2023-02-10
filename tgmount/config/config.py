@@ -11,10 +11,14 @@ from tgmount.util.col import get_first_pair
 
 from . import types
 from .logger import logger
-from .reader import ConfigContext, PropertyReader, TgmountConfigExtensionProto
+from .reader import (
+    ConfigContext,
+    ConfigExtensions,
+    PropertyReader,
+    TgmountConfigExtensionProto,
+)
 
 T = TypeVar("T")
-Extensions = Mapping[Type, list[TgmountConfigExtensionProto]]
 
 
 def ensure_list(value: T | list[T]) -> list[T]:
@@ -354,14 +358,14 @@ class ConfigReader(CachesReader, DirConfigReader):
 
 class ConfigParser(ConfigParserProto, ConfigParserFilter):
     def parse_root(
-        self, mapping: Mapping, extensions: Extensions | None = None
+        self, mapping: Mapping, extensions: ConfigExtensions | None = None
     ) -> types.DirConfig:
         return ConfigReader(
             ConfigContext(mapping, extensions=extensions)
         ).read_dir_config()
 
     def parse_config(
-        self, mapping: Mapping, extensions: Extensions | None = None
+        self, mapping: Mapping, extensions: ConfigExtensions | None = None
     ) -> types.Config:
         return ConfigReader(ConfigContext(mapping, extensions=extensions)).read_config()
 

@@ -10,7 +10,7 @@ from telethon import TelegramClient
 from tgmount import tglog
 
 from tgmount.common.subscribable import Subscribable
-from tgmount.util import map_none_else, yes
+from tgmount.util import map_none_else, nn
 
 from .auth import TelegramAuthen
 
@@ -36,7 +36,7 @@ class TgmountTelegramClient(
     logger = module_logger.getChild("TgmountTelegramClient")
 
     def __repr__(self):
-        return f"TgmountTelegramClient({self.session.filename if yes(self.session) else None})"
+        return f"TgmountTelegramClient({self.session.filename if nn(self.session) else None})"
 
     def __init__(
         self,

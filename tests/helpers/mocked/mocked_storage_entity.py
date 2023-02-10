@@ -12,7 +12,7 @@ from tgmount.tgclient.types import (
     InputPhotoFileLocation,
     TotalListTyped,
 )
-from tgmount.util import none_fallback, random_int, yes
+from tgmount.util import none_fallback, random_int, nn
 
 from .mocked_message import (
     MockedDocument,
@@ -89,11 +89,11 @@ class StorageEntityBase:
     def messages(self) -> TotalListTyped[MockedMessage]:
         msgs = []
         for m in self._messages:
-            if yes(m.document):
+            if nn(m.document):
                 m.document = self._storage.get_storage_document(
                     m.document.id
                 ).get_document()
-            elif yes(m.photo):
+            elif nn(m.photo):
                 m.photo = self._storage.get_storage_photo(m.photo.id).get_photo()
 
         return TotalListTyped(
@@ -106,7 +106,7 @@ class StorageEntityBase:
     def get_messages(
         self, ids: list[int] | None = None
     ) -> TotalListTyped[MockedMessage]:
-        if yes(ids):
+        if nn(ids):
             return TotalListTyped([m for m in self.messages if m.id in ids])
 
         return self.messages
@@ -175,7 +175,7 @@ class StorageEntityBase:
             reactions=reactions,
         )
 
-        if yes(msg_id):
+        if nn(msg_id):
             msg.id = msg_id
 
         storage_file = await self._storage.create_storage_photo(file)
@@ -214,7 +214,7 @@ class StorageEntityBase:
             reactions=reactions,
         )
 
-        if yes(msg_id):
+        if nn(msg_id):
             msg.id = msg_id
 
         if isinstance(file, (str, bytes)):

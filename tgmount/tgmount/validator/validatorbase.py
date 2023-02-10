@@ -6,8 +6,8 @@ from tgmount.config.config import ConfigParser
 from tgmount.config.error import ConfigError, ConfigErrorWithPath
 from tgmount.tgclient.fetcher import TelegramMessagesFetcher
 from tgmount.tgmount.tgmount_builderbase import TgmountBuilderBase
-from tgmount.tgmount.tgmount_types import TgmountResources
-from tgmount.util import no, yes
+from tgmount.tgmount.tgmount_resources import TgmountResources
+from tgmount.util import no, nn
 
 from .logger import logger
 
@@ -39,14 +39,13 @@ class ConfigValidatorBase:
 
     async def verify_message_sources(self, cfg: config.Config):
         for src_id, src in cfg.message_sources.sources.items():
-            if not yes(src.filter):
+            if not nn(src.filter):
                 continue
 
             pass
 
     async def verify_caches(self, cfg: config.Config):
-
-        if not yes(cfg.caches):
+        if not nn(cfg.caches):
             return
 
         for cache_id, cache in cfg.caches.caches.items():
@@ -63,7 +62,7 @@ class ConfigValidatorBase:
         for filter_name, filter_arg in ConfigParser().parse_filter_value(filter_value):
             filter_class = resources.filters_provider.get(filter_name)
 
-            if yes(filter_class):
+            if nn(filter_class):
                 filter_class.from_config(
                     filter_arg,
                     resources,
@@ -81,11 +80,11 @@ class ConfigValidatorBase:
         filter_prop = dir_cfg.filter
         parse_filter = functools.partial(self._parse_filter, resources)
 
-        if yes(filter_prop):
+        if nn(filter_prop):
             for filter_name, filter_arg in filter_prop.filter:
                 filter_class = resources.filters_provider.get(filter_name)
 
-                if yes(filter_class):
+                if nn(filter_class):
                     try:
                         filter_class.from_config(
                             filter_arg,

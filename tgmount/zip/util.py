@@ -39,7 +39,7 @@ def get_zip_tree(filelist: list[ZipInfo]) -> ZipTree:
     return group_dirs_into_tree(dirs)
 
 
-def zip_ls(zf: ZipFile, path: list[str] = []) -> (ZipTree | None):
+def zip_ls(zf: ZipFile, path: list[str] = []) -> ZipTree | None:
     """
     ignores global paths (paths starting with `/`).
     to get zip's root listing use `path = []` which is default

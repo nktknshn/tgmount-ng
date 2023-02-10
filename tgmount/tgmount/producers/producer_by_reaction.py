@@ -3,7 +3,7 @@ from typing import Iterable, Mapping
 
 import telethon
 from tgmount.tgclient.guards import MessageForwarded, MessageWithReactions
-from tgmount.tgclient.message_types import MessageProto
+from tgmount.tgclient.message_types import MessageProto, ReactionEmojiProto
 from tgmount.tgmount.vfs_tree_producer_types import (
     VfsTreeProducerConfig,
     VfsTreeProducerProto,
@@ -19,6 +19,8 @@ async def group_by_reaction(
 
     for m in reactions_messages:
         for r in m.reactions.results:
+            if not ReactionEmojiProto.guard(r.reaction):
+                continue
             reactions[r.reaction.emoticon].append(m)
 
     return reactions
@@ -29,7 +31,6 @@ class VfsTreeGroupByReactions(VfsTreeProducerGrouperBase, VfsTreeProducerProto):
     async def from_config(
         cls, resources, config: VfsTreeProducerConfig, arg: Mapping, sub_dir
     ):
-
         return VfsTreeGroupByReactions(
             config=config,
             dir_structure=arg.get(

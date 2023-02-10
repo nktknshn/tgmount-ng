@@ -7,7 +7,7 @@ from tgmount.tgmount.extensions.types import TgmountExtensionProto
 from tgmount.tgmount.file_factory.classifier import ClassifierDefault
 from tgmount.tgmount.file_factory.filefactory import FileFactorySupportedTypes
 from tgmount.tgmount.producers.producer_by_sender import get_message_sender_display_name
-from tgmount.util import none_fallback, yes
+from tgmount.util import none_fallback, nn
 
 from .tgmount_builderbase import TgmountBuilderBase
 from .file_factory import FileFactoryDefault
@@ -48,7 +48,7 @@ class MessageWithTextContent:
     async def make_string(message: MessageWithText) -> str:
         result = ""
 
-        if yes(message.date):
+        if nn(message.date):
             result += message.date.ctime()
         else:
             result += "no date"
@@ -57,7 +57,7 @@ class MessageWithTextContent:
 
         sender_name = await get_message_sender_display_name(message, True)
 
-        if yes(sender_name):
+        if nn(sender_name):
             result += f"from: {sender_name}\n"
         else:
             result += f"from: Deleted Account\n"

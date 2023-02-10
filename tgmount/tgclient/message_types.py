@@ -1,10 +1,11 @@
 from abc import abstractmethod
 from datetime import datetime
+from os import stat
 from typing import Any, Optional, Protocol, TypeGuard
 
 import telethon
 
-from tgmount.util import yes
+from tgmount.util import nn
 
 MessageId = int
 ChatId = str | int
@@ -36,6 +37,10 @@ class VoiceProto(Protocol):
 
 class ReactionEmojiProto(Protocol):
     emoticon: str
+
+    @staticmethod
+    def guard(value: Any) -> TypeGuard["ReactionEmojiProto"]:
+        return hasattr(value, "emoticon")
 
 
 class ReactionCountProto(Protocol):
@@ -157,7 +162,7 @@ class MessageProto(Protocol):
         def fmt(text: str):
             return text[:10].replace("\n", "\\n")
 
-        if yes(message.text):
+        if nn(message.text):
             return f"Message(id={message.id}, message='{fmt(message.text)}...', document={bool(message.document)}, photo={bool(message.photo)})"
 
         return f"Message(id={message.id}, document={bool(message.document)}, photo={bool(message.photo)})"

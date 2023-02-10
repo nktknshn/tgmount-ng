@@ -6,7 +6,7 @@ from typing import Tuple
 import greenback
 
 from tgmount.vfs.types.file import FileContentProto
-from tgmount.vfs.util import MyLock
+from tgmount.util.lock import Lock
 from tgmount.zip.types import ZipFileAsyncThunk
 
 FileContentZipHandle = Tuple[zipfile.ZipFile, zipfile.ZipExtFile]
@@ -17,7 +17,7 @@ logger = logging.getLogger("tgmount-zip")
 
 class FileContentZip(FileContentProto):
     def __init__(self, z_factory: ZipFileAsyncThunk, zinfo: zipfile.ZipInfo):
-        self.read_lock = MyLock(
+        self.read_lock = Lock(
             id=f"zipinfo_to_filelike({zinfo.filename})", logger=logger
         )
         self.zinfo = zinfo

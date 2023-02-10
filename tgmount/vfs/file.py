@@ -1,4 +1,4 @@
-from abc import abstractmethod, ABC
+from abc import abstractmethod
 import logging
 import os
 from datetime import datetime
@@ -21,7 +21,7 @@ from tgmount.vfs.types.file import (
     FileContentStringProto,
     FileContentStringWritable,
 )
-from tgmount.vfs.util import MyLock
+from tgmount.util.lock import Lock
 
 logger = logging.getLogger("tgvfs")
 
@@ -75,7 +75,7 @@ def file_content_from_bytes(bs: bytes) -> FileContent:
 
 
 def file_content_from_io(b: BytesIO) -> FileContent:
-    lock = MyLock(f"file_content_from_io()", logger=logger)
+    lock = Lock(f"file_content_from_io()", logger=logger)
 
     async def _read(f: BytesIO, off, size):
         logger.debug(f"file_content_from_io.read(off={off}, size={size})")
@@ -115,7 +115,7 @@ def file_content_from_io(b: BytesIO) -> FileContent:
 
 
 def file_content_from_file(src_path: str) -> FileContentProto:
-    lock = MyLock(f"from_file({src_path})", logger=logger)
+    lock = Lock(f"from_file({src_path})", logger=logger)
 
     async def _read(f, off, size):
         logger.debug(f"file_to_file_content.read, off={off}, size={size}")
@@ -160,7 +160,7 @@ async def read_file_content_bytes(fc: FileContentProto) -> bytes:
     return data
 
 
-class FileContentWritableConsumer(FileContentWritableProto, ABC):
+class FileContentWritableConsumer(FileContentWritableProto):
     """Consumes all the bytes. The result will be available in `close_func`"""
 
     size: int = 0

@@ -3,20 +3,19 @@ from datetime import datetime
 import logging
 import tgmount
 
-# from tgmount.tgmount.root_config_reader import TgmountConfigReader
-from tgmount.util import yes
+# from tgmount.tgmount.root_config_walker import TgmountConfigReader
+from tgmount.util import nn
 
 
 def init_logging(debug_level: int = 0, debug_fs_ops=False):
-
     logging.getLogger("asyncio").setLevel(logging.CRITICAL)
     logging.getLogger("telethon").setLevel(logging.ERROR)
 
     tgmount.tgmount.module_logger.setLevel(debug_level)
     tgmount.cli.logger.setLevel(debug_level)
-
+    tgmount.config.logger.setLevel(logging.ERROR)
     tgmount.tgmount.filters.logger.setLevel(logging.INFO)
-    # tgmount.tgmount.root_config_reader.TgmountConfigReader.logger.setLevel(logging.INFO)
+    # tgmount.tgmount.root_config_walker.TgmountConfigReader.logger.setLevel(logging.INFO)
 
     tgmount.tgmount.producers.producer_plain.VfsTreeProducerPlainDir.logger.setLevel(
         logging.INFO
@@ -85,10 +84,9 @@ class TgmountLogger(logging.Logger):
         return child
 
     def makeRecord(self, *args, **kwargs) -> logging.LogRecord:
-
         rec = super().makeRecord(*args, **kwargs)
 
-        if self.suffix_as_tag and yes(self.parent):
+        if self.suffix_as_tag and nn(self.parent):
             rec.name = self.parent.name
             rec.__dict__["tag"] = get_name_part(self.name, -1)
         else:
@@ -113,7 +111,7 @@ class ContextFilter(logging.Filter):
     def filter(self, record: logging.LogRecord):
         task = asyncio.current_task
 
-        if yes(task) and hasattr(task, "get_name"):
+        if nn(task) and hasattr(task, "get_name"):
             record.task_name = task.get_name()
         else:
             record.task_name = "outside the loop"
@@ -151,7 +149,7 @@ class Formatter(logging.Formatter):
         rec.name = rec.name.replace("tgmount.", "", 1)
         time = datetime.fromtimestamp(rec.created).strftime("%d/%m %H:%M:%S")
 
-        if hasattr(rec, "tag") and yes(rec.tag):
+        if hasattr(rec, "tag") and nn(rec.tag):
             log_str = f"{time} {rec.levelname} [{rec.name}] [{rec.tag}] {rec.message}"
         else:
             log_str = f"{time} {rec.levelname} [{rec.name}] {rec.message}"
@@ -162,7 +160,6 @@ class Formatter(logging.Formatter):
         return log_str
 
     def format(self, rec: TgmountLogRecord) -> str:
-
         if rec.levelno not in self.COLORS:
             return self._format(rec)
 

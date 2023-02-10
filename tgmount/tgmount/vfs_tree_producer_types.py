@@ -8,8 +8,8 @@ from tgmount.tgclient.message_types import MessageProto
 from tgmount.tgmount.file_factory import FileFactoryProto
 from tgmount.tgmount.filters_types import Filter
 from tgmount import config
-from tgmount.tgmount.vfs_tree import VfsTreeDir
-from tgmount.tgmount.vfs_tree_wrapper_types import VfsTreeWrapperProto
+from tgmount.vfs.vfs_tree import VfsTreeDir
+from tgmount.vfs.vfs_tree_wrapper_types import VfsTreeWrapperProto
 
 
 class VfsTreeProducerConfig:
@@ -19,15 +19,13 @@ class VfsTreeProducerConfig:
     factory: FileFactoryProto
     filters: list[Filter]
     factory_props: Mapping | None = None
-    # treat_as_prop: Optional[list[str]] = None
 
     def __init__(
         self,
         message_source: MessageSourceProto,
         factory: FileFactoryProto,
         filters: list[Filter],
-        factory_props: Mapping | None = None
-        # treat_as_prop: Optional[list[str]] = None,
+        factory_props: Mapping | None = None,
     ) -> None:
         self.message_source = message_source
         self.factory = factory
@@ -112,7 +110,6 @@ class VfsTreeProducerProto(Protocol):
 
 
 class VfsTreeProducerExtensionProto(Protocol):
-    @abstractmethod
     async def extend_vfs_tree_dir(
         self,
         # resources: TgmountResources,
@@ -120,4 +117,4 @@ class VfsTreeProducerExtensionProto(Protocol):
         vfs_config: VfsDirConfig,
         tree_dir: VfsTreeDir,
     ):
-        ...
+        pass

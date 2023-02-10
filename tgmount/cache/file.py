@@ -5,7 +5,7 @@ from typing import IO, Optional, Set
 import aiofiles
 from aiofiles.threadpool.binary import AsyncBufferedReader
 
-from tgmount.vfs.util import MyLock
+from tgmount.util.lock import Lock
 from .types import CacheBlocksStorageProto
 
 logger = logging.getLogger("tgmount-cache")
@@ -20,7 +20,7 @@ class CacheBlockStorageFile(CacheBlocksStorageProto):
         self.blocks_number: Optional[int] = None
         self.blocks_flags: Optional[int] = None
 
-        self._lock = MyLock("FileCacheBlockStorage.lock", logger)
+        self._lock = Lock("FileCacheBlockStorage.lock", logger)
 
     @staticmethod
     async def open_cache_file(fpath: str):
@@ -92,7 +92,6 @@ class CacheBlockStorageFile(CacheBlocksStorageProto):
         await self._update_flag(block_number)
 
     async def _get_block(self, block_number: int) -> Optional[bytes]:
-
         if self.blocksize is None:
             return
 
@@ -106,7 +105,6 @@ class CacheBlockStorageFile(CacheBlocksStorageProto):
         return self.blocks_flags >> block_number & 1
 
     async def _update_flag(self, block_number: int, fetched: bool = True):
-
         if self.blocks_flags is None:
             return
 

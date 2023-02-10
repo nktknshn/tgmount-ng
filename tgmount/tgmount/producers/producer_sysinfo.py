@@ -1,15 +1,21 @@
-from typing import Any, Callable, Mapping
-from tgmount import vfs
+import os
+from typing import Any, Callable, Mapping, Protocol
+
+from tgmount import fs, vfs
+from tgmount.common.extra import Extra, Namespace
+from tgmount.fs.operations import FileSystemOperations
 from tgmount.tgclient.guards import MessageDownloadable
 from tgmount.tgmount.cached_filefactory_factory import CacheFileFactoryFactory
-from tgmount.tgmount.tgmount_types import TgmountResources
+from tgmount.tgmount.tgmount_resources import TgmountResources
 from tgmount.tgmount.tgmountbase import TgmountBase
-from tgmount.tgmount.vfs_tree import VfsTreeDir
+from tgmount.vfs.vfs_tree import VfsTreeDir
 from tgmount.tgmount.vfs_tree_producer_types import (
     VfsTreeProducerConfig,
     VfsTreeProducerProto,
 )
-from tgmount.util import yes
+from tgmount.util import nn
+from tgmount.util.col import map_keys
+from tgmount.util.path import norm_path, paths_to_tree, split_path, walk_paths_tree
 
 from .logger import module_logger
 
@@ -18,8 +24,12 @@ def encode(s: str):
     return s.encode("utf-8")
 
 
-class SysInfoCaches(vfs.FileContentStringProto):
-    """fuse doesn't support reading empty files like procfs"""
+class SysInfoFile(vfs.FileContentStringProto):
+    size = 666666
+
+
+class SysInfoCaches(SysInfoFile):
+    """fuse doesn't support reading files with zero bytes size like in procfs"""
 
     size = 666666
 
@@ -32,7 +42,7 @@ class SysInfoCaches(vfs.FileContentStringProto):
         for cache_id in self._caches.ids:
             cache = self._caches.get_cache_by_id(cache_id)
 
-            if not yes(cache):
+            if not nn(cache):
                 continue
 
             total_stored = await cache.total_stored()
@@ -55,14 +65,11 @@ class SysInfoCaches(vfs.FileContentStringProto):
         return result
 
 
-from tgmount import fs
-
-
-class SysInfoFileSystem(vfs.FileContentStringProto):
-    size = 666666
-
-    def __init__(self, get_fs: Callable[[], fs.FileSystemOperations]) -> None:
-        super().__init__()
+class SysInfoFileSystem(SysInfoFile):
+    def __init__(
+        self,
+        get_fs: Callable[[], fs.FileSystemOperations],
+    ) -> None:
         self._get_fs = get_fs
 
     async def get_string(self, handle: Any) -> str:
@@ -72,6 +79,14 @@ class SysInfoFileSystem(vfs.FileContentStringProto):
         result += f"Inodes count: {len(inodes)}"
 
         return result
+
+
+class SysInfoExtra(Protocol):
+    items: dict[str, SysInfoFile]
+
+
+class CacheFileFactoryFactoryProvider(Protocol):
+    caches: CacheFileFactoryFactory
 
 
 class VfsTreeProducerSysInfo(VfsTreeProducerProto):
@@ -84,6 +99,7 @@ class VfsTreeProducerSysInfo(VfsTreeProducerProto):
     ) -> None:
         self._vfs_tree_dir = vfs_tree_dir
         self._resources = resources
+        self._items = resources.extra.get("sysinfo", SysInfoExtra).items
 
     @classmethod
     async def from_config(
@@ -93,30 +109,45 @@ class VfsTreeProducerSysInfo(VfsTreeProducerProto):
         arg: Mapping,
         vfs_tree_dir: VfsTreeDir,
     ) -> "VfsTreeProducerProto":
-        return VfsTreeProducerSysInfo(
-            resources=resources,
-            vfs_tree_dir=vfs_tree_dir,
+        return VfsTreeProducerSysInfo(resources=resources, vfs_tree_dir=vfs_tree_dir)
+
+    @staticmethod
+    def create_sysinfo_extra(
+        extra: Extra, resources: TgmountResources, fs: FileSystemOperations
+    ):
+        sysinfo_extra = extra.create("sysinfo", SysInfoExtra)
+        sysinfo_extra.items = {}
+        VfsTreeProducerSysInfo.add_sysinfo_item(
+            extra, "/cache", SysInfoCaches(resources.caches)
+        )
+        VfsTreeProducerSysInfo.add_sysinfo_item(
+            extra, "/fs/inodes", SysInfoFileSystem(fs)
         )
 
-    async def produce(self):
-        await self._vfs_tree_dir.put_content(
-            vfs.vfile("caches", SysInfoCaches(self._resources.caches)),
-        )
+    @staticmethod
+    def add_sysinfo_item(extra: Extra, path: str, item: SysInfoFile):
+        sysinfo_extra = extra.try_get("sysinfo", SysInfoExtra)
 
-        # get_tgm: Callable[[], TgmountBase] | None = self._resources.extra.get("get_tgm")
-
-        get_tgm: Callable[
-            [], TgmountBase
-        ] | None = self._resources.extra.sysinfo.get_tgm
-
-        if not yes(get_tgm):
-            self.logger.warning("Missinex get_tgm in extra.")
+        if sysinfo_extra is None:
+            VfsTreeProducerSysInfo.logger.warning(
+                f"Error adding {path}. Missing sysinfo extra."
+            )
             return
 
-        fs_dir = await self._vfs_tree_dir.create_dir("fs")
+        sysinfo_extra.items[path] = item
 
-        tgm: TgmountBase = get_tgm()
+    async def produce(self):
+        items_tree = paths_to_tree(self._items.keys())
+        items_norm = map_keys(norm_path, self._items)
 
-        await fs_dir.put_content(
-            vfs.vfile("info", SysInfoFileSystem(lambda: tgm.fs)),
-        )
+        for path in walk_paths_tree(items_tree):
+            if path not in items_norm:
+                # print(f"Create dir {path}. items_norm={items_norm}")
+                await self._vfs_tree_dir.create_dir(path)
+
+        for path, item_content in items_norm.items():
+            dirpath, filename = split_path(path)
+
+            await self._vfs_tree_dir.put_content(
+                vfs.FileLike(filename, item_content), dirpath
+            )

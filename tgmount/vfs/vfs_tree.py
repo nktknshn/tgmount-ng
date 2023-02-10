@@ -8,9 +8,13 @@ from tgmount.common.subscribable import (
     SubscribableListener,
     SubscribableProto,
 )
-from tgmount.tglog import TgmountLogger
 from tgmount.error import TgmountError
-from tgmount.tgmount.vfs_tree_types import (
+from tgmount.tglog import TgmountLogger
+from tgmount.util import none_fallback
+from tgmount.util.col import map_keys
+
+from .logger import module_logger as _logger
+from .vfs_tree_types import (
     TreeEventNewDirs,
     TreeEventNewItems,
     TreeEventRemovedDirs,
@@ -19,10 +23,7 @@ from tgmount.tgmount.vfs_tree_types import (
     TreeEventUpdatedItems,
     VfsTreeProto,
 )
-from tgmount.tgmount.vfs_tree_wrapper_types import VfsTreeWrapperProto
-from tgmount.util import none_fallback
-from tgmount.util.col import map_keys
-from .logger import module_logger as _logger
+from .vfs_tree_wrapper_types import VfsTreeWrapperProto
 
 
 class VfsTreeError(TgmountError):
@@ -106,10 +107,6 @@ class VfsTreeDirMixin:
             )
 
 
-class VfsTreeDirProducer:
-    pass
-
-
 class VfsTreeDir(VfsTreeDirMixin):
     """
     Represents a single dir.
@@ -176,13 +173,6 @@ class VfsTreeDir(VfsTreeDirMixin):
             return self._path
 
         return vfs.path_join(self._path, vfs.path_remove_slash(subpath))
-
-    # def add_sub_producer(self, sub: VfsTreeProducerProto):
-    #     self._subs.append(sub)
-
-    # async def produce(self):
-    #     for s in self._subs:
-    #         await s.produce()
 
     async def get_subdir(self, subpath: str) -> "VfsTreeDir":
         return await self._parent_tree.get_dir(self._globalpath(subpath))
@@ -381,24 +371,30 @@ class VfsTree(Subscribable, VfsTreeProto):
         self,
         content: Mapping[str, vfs.DirContentItem],
         path: str = "/",
+        notify=True,
     ):
         """Put a sequence of `vfs.DirContentItem` at `path`."""
         sd = await self.get_dir(path)
 
         await sd._update_content(content)
 
-        await sd.child_updated(
-            [
-                TreeEventUpdatedItems(
-                    sender=sd,
-                    updated_items=map_keys(
-                        lambda name: vfs.path_join(path, name), content
-                    ),
-                )
-            ],
-        )
+        if notify:
+            await sd.child_updated(
+                [
+                    TreeEventUpdatedItems(
+                        sender=sd,
+                        updated_items=map_keys(
+                            lambda name: vfs.path_join(path, name), content
+                        ),
+                    )
+                ],
+            )
 
-    async def remove_dir(self, path: str):
+    async def remove_dir(
+        self,
+        path: str,
+        notify=True,
+    ):
         """Removes a dir stored at `path` notifying parent dir with `UpdateRemovedDirs`."""
 
         if path == "/":
@@ -421,16 +417,21 @@ class VfsTree(Subscribable, VfsTreeProto):
 
         self._subdirs.remove_path(path)
 
-        await parent.child_updated(
-            # parent,  # type: ignore
-            [TreeEventRemovedDirs(sender=parent, removed_dirs=[path])],
-        )
+        if notify:
+            await parent.child_updated(
+                # parent,  # type: ignore
+                [TreeEventRemovedDirs(sender=parent, removed_dirs=[path])],
+            )
 
     async def create_dir(self, path: str) -> VfsTreeDir:
         """Creates a subdir at `path`. Notifies parent dir with `UpdateNewDirs` and returns created `VfsTreeDir`"""
         return await self.put_dir(self.VfsTreeDir(self, path))
 
-    async def put_dir(self, d: VfsTreeDir) -> VfsTreeDir:
+    async def put_dir(
+        self,
+        d: VfsTreeDir,
+        notify=True,
+    ) -> VfsTreeDir:
         """Put `VfsTreeDir`. May be used instead of `create_dir` method."""
         path = vfs.norm_path(d.path, addslash=True)
         # parent_dir, dir_name = vfs.split_path(path, addslash=True)
@@ -450,10 +451,11 @@ class VfsTree(Subscribable, VfsTreeProto):
             if parent.path not in self._dir_by_path:
                 await self.create_dir(parent.path)
 
-            await parent.child_updated(
-                # parent,  # type: ignore
-                [TreeEventNewDirs(sender=parent, new_dirs=[path])],
-            )
+            if notify:
+                await parent.child_updated(
+                    # parent,  # type: ignore
+                    [TreeEventNewDirs(sender=parent, new_dirs=[path])],
+                )
 
         return self._dir_by_path[path]
 

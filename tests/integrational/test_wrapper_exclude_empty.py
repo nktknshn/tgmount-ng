@@ -8,8 +8,8 @@ from tgmount import vfs, zip as z
 from tests.integrational.helpers import mdict
 from tests.helpers.config import create_config
 from tgmount.tglog import init_logging
-from tgmount.tgmount.vfs_tree import VfsTree, VfsTreeDir
-from tgmount.tgmount.vfs_tree_types import (
+from tgmount.vfs.vfs_tree import VfsTree, VfsTreeDir
+from tgmount.vfs.vfs_tree_types import (
     TreeEventNewDirs,
     TreeEventNewItems,
     TreeEventRemovedDirs,
@@ -20,8 +20,6 @@ from .fixtures import *
 from .context import Context
 
 from ..logger import logger as _logger
-
-import tgmount
 
 
 class TreeListener:

@@ -15,6 +15,9 @@ ListenerRemovedMessages = Callable[[events.MessageDeleted.Event], Awaitable[None
 ListenerEditedMessage = Callable[
     [events.MessageEdited.Event | MessageReactionEvent], Awaitable[None]
 ]
+from telethon import types
+
+types.messages.AffectedMessages
 
 T = TypeVar("T")
 
@@ -120,14 +123,14 @@ class TgmountTelegramClientDeleteMessagesProto(Protocol):
         message_ids: list[int],
         *,
         revoke: bool = True,
-    ) -> Sequence:
+    ) -> Sequence[types.messages.AffectedMessages]:
         # ) -> "typing.Sequence[types.messages.AffectedMessages]":
         pass
 
 
 class TgmountTelegramClientSendMessageProto(Protocol):
     @abstractmethod
-    async def send_message(self, *args, **kwargs):
+    async def send_message(self, entity: EntityId, message: str):
         pass
 
 

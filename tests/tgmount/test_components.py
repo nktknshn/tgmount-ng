@@ -14,7 +14,7 @@ from tgmount import fs, vfs
 from tgmount.config.types import Config
 
 from tgmount.error import TgmountError
-from tgmount.tgmount.vfs_tree import VfsTree, VfsTreeDir
+from tgmount.vfs.vfs_tree import VfsTree, VfsTreeDir
 
 from ..config.fixtures import config_from_file
 

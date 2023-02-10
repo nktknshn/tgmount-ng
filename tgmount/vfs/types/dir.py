@@ -49,18 +49,24 @@ class DirContentProto(Protocol[T]):
         return hasattr(item, "readdir_func")
 
 
-class DirContentWritableProto(DirContentProto[T], Protocol[T]):
+class DirContentCanCreateProto(DirContentProto[T], Protocol[T]):
     @abstractmethod
     async def create(self, filename: str) -> FileLike:
         pass
 
+    @staticmethod
+    def guard(dc: DirContentProto) -> TypeGuard["DirContentCanCreateProto"]:
+        return hasattr(dc, "create")
+
+
+class DirContentCanRemoveProto(DirContentProto[T], Protocol[T]):
     @abstractmethod
     async def remove(self, filename: str):
         pass
 
     @staticmethod
-    def guard(dc: DirContentProto) -> TypeGuard["DirContentWritableProto"]:
-        return hasattr(dc, "create")
+    def guard(dc: DirContentProto) -> TypeGuard["DirContentCanRemoveProto"]:
+        return hasattr(dc, "remove")
 
 
 @dataclass
@@ -124,7 +130,9 @@ class DirContentList(DirContentProto[list[DirContentItem]]):
         return handle[off:]
 
 
-class DirContentListWritable(DirContentList, DirContentWritableProto):
+class DirContentListWritable(
+    DirContentList, DirContentCanCreateProto, DirContentCanRemoveProto
+):
     @abstractmethod
     async def create_filelike(self, filename: str) -> FileLike:
         pass

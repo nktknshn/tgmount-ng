@@ -6,7 +6,7 @@ from tgmount.tgmount.producers.grouperbase import (
     GroupedMessages,
     VfsTreeProducerGrouperBase,
 )
-from tgmount.tgmount.vfs_tree import VfsTreeDir
+from tgmount.vfs.vfs_tree import VfsTreeDir
 from tgmount.tgmount.vfs_tree_producer_types import (
     VfsTreeProducerConfig,
     VfsTreeProducerProto,
@@ -18,7 +18,6 @@ def group_by_performer(
     messages: Iterable[MessageWithMusic],
     minimum=1,
 ) -> tuple[dict[str, list[MessageWithMusic]], list[MessageWithMusic]]:
-
     messages = list(messages)
 
     no_performer = [t for t in messages if t.file.performer is None]
@@ -44,7 +43,6 @@ class VfsTreeGroupByPerformer(VfsTreeProducerGrouperBase, VfsTreeProducerProto):
     async def from_config(
         cls, resources, config: VfsTreeProducerConfig, arg: Mapping, sub_dir: VfsTreeDir
     ):
-
         return VfsTreeGroupByPerformer(
             config=config,
             dir_structure=arg.get(
@@ -58,7 +56,6 @@ class VfsTreeGroupByPerformer(VfsTreeProducerGrouperBase, VfsTreeProducerProto):
     async def group_messages(
         self, messages: Iterable[MessageProto]
     ) -> GroupedMessages[MessageWithMusic]:
-
         by_performer, no_performer = group_by_performer(
             filter(MessageWithMusic.guard, messages)
         )

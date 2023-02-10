@@ -8,69 +8,32 @@ T = TypeVar("T")
 
 Ts = TypeVarTuple("Ts")
 Arg_co = TypeVar("Arg_co", covariant=True)
+Arg2_co = TypeVar("Arg2_co", covariant=True)
 
 Listener = Callable[
-    [
-        Any,
-        *Ts,
-    ],
+    [Any, Arg],
     Awaitable[None],
 ]
 
 
-class A:
-    def do_stuff(self):
-        ...
-
-
-class B:
-    def do_stuff(self):
-        ...
-
-
-class C:
-    A = A
-    B = B
-
-    def do_something(self):
-        a = self.A()
-        b = self.B()
-
-        return a.do_stuff() + b.do_stuff()
-
-
-class TestingA(A):
-    def do_stuff(self):
-        ...
-
-
-class TestingC(C):
-    A = TestingA
-    B = B
-
-
-tc = TestingC()
-
-
 class SubscribableProto(Protocol[Arg_co]):
     @abstractmethod
-    def subscribe(self, listener: Listener):
+    def subscribe(self, listener: Listener[Arg_co]):
         ...
 
     @abstractmethod
-    def unsubscribe(self, listener: Listener):
+    def unsubscribe(self, listener: Listener[Arg_co]):
         ...
 
 
 class Subscribable(SubscribableProto[Arg]):
     def __init__(self) -> None:
-        self._listeners: list[Listener] = []
+        self._listeners: list[Listener[Arg]] = []
 
-    def subscribe(self, listener: Listener):
+    def subscribe(self, listener: Listener[Arg]):
         self._listeners.append(listener)
 
-
-    def unsubscribe(self, listener: Listener):
+    def unsubscribe(self, listener: Listener[Arg]):
         self._listeners.remove(listener)
 
     async def notify(self, *args):
@@ -83,7 +46,7 @@ class SubscribableListener(Generic[T]):
         self.source = source
         self.events: list[T] = []
         self.exclusively = exclusively
-        self._subs = None
+        self._subs = []
 
     async def _append_events(self, sender, events: list[T]):
         self.events.extend(events)

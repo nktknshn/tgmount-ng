@@ -9,7 +9,7 @@ from tgmount.config.error import (
     MissingKeyError,
     TypecheckError,
 )
-from tgmount.util import get_bytes_count, map_none, no, none_fallback, yes
+from tgmount.util import get_bytes_count, map_none, no, none_fallback, nn
 from tgmount.util.col import get_first_pair
 
 
@@ -35,9 +35,11 @@ R = TypeVar("R", bound="PropertyReader")
 
 
 class TgmountConfigExtensionProto(Protocol):
-    @abstractmethod
     def extend_config(self, reader: "PropertyReader", extra: Extra):
-        ...
+        pass
+
+
+ConfigExtensions = Mapping[Type, list[TgmountConfigExtensionProto]]
 
 
 def ensure_list(value: T | list[T]) -> list[T]:
@@ -67,7 +69,7 @@ class PropertyReader:
     def get_key(self, key: str, optional=False, default=None) -> Any | None:
         self._keys_read.add(key)
 
-        if yes(self._parent_reader):
+        if nn(self._parent_reader):
             self._parent_reader._keys_read.add(key)
 
         value = self.ctx.mapping.get(key, default)
@@ -218,7 +220,6 @@ class PropertyReader:
         )
 
     def enter(self, key: str) -> Self:
-        self.logger.debug(f"enter({key})")
         self._keys_read.add(key)
         return self.ctx.enter(key).get_reader(self.klass)
 
@@ -269,7 +270,6 @@ class ConfigContext:
             self.fail(e)
 
     def enter(self, key: str) -> "ConfigContext":
-        self.logger.debug(f"enter({key}")
         mapping = self.mapping.get(key)
 
         if mapping is None:

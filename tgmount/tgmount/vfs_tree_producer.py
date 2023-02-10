@@ -1,21 +1,21 @@
 from typing import Sequence
 from tgmount import vfs, config
-from tgmount.util import none_fallback, yes
+from tgmount.util import none_fallback, nn
 from tgmount.util.timer import Timer
 
 from .logger import module_logger as logger
-from .root_config_reader import TgmountConfigReader
+from .root_config_walker import TgmountRootConfigWalker
 from .root_config_types import RootConfigWalkingContext
-from .tgmount_types import TgmountResources
+from .tgmount_resources import TgmountResources
 from .types import TgmountRootType
-from .vfs_tree import VfsTree, VfsTreeDir
+from tgmount.vfs.vfs_tree import VfsTree, VfsTreeDir
 from .vfs_tree_producer_types import VfsTreeProducerExtensionProto, VfsDirConfig
 
 
 class VfsTreeProducer:
     """Class that using `TgmountResources` and `VfsStructureConfig` produces content into `VfsTreeDir` or `VfsTree`"""
 
-    TgmountConfigReader = TgmountConfigReader
+    TgmountConfigReader = TgmountRootConfigWalker
 
     logger = logger.getChild(f"VfsTreeProducer")
     LOG_DEPTH = 2
@@ -24,7 +24,6 @@ class VfsTreeProducer:
         self, extensions: Sequence[VfsTreeProducerExtensionProto] | None = None
     ) -> None:
         self._extensions = none_fallback(extensions, [])
-        # self._resources = resources
 
     def __repr__(self) -> str:
         return f"VfsTreeProducer()"
@@ -32,8 +31,8 @@ class VfsTreeProducer:
     async def produce(
         self,
         resources: TgmountResources,
-        tree_dir: VfsTreeDir | VfsTree,
         dir_config: config.DirConfig,
+        tree_dir: VfsTreeDir | VfsTree,
         ctx=None,
     ):
         """Produce content into `tree_dir` using `dir_config`"""
@@ -56,10 +55,7 @@ class VfsTreeProducer:
             ),
         ):
             await self.produce_from_vfs_dir_config(
-                resources,
-                tree_dir,
-                path,
-                vfs_dir_config,
+                resources, tree_dir, path, vfs_dir_config
             )
 
         t1.stop()
@@ -74,7 +70,7 @@ class VfsTreeProducer:
         tree_dir: VfsTreeDir | VfsTree,
         path: str,
         vfs_config: VfsDirConfig,
-    ):
+    ) -> VfsTreeDir:
         """Using `VfsDirConfig` produce content into `tree_dir`"""
         global_path = vfs.path_join(tree_dir.path, path)
 

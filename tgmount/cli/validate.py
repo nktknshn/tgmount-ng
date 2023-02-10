@@ -9,7 +9,7 @@ from tgmount.tgmount.validator import ConfigValidator
 from tgmount.error import TgmountError
 
 from tgmount.tgmount.tgmount_builder import TgmountBuilder
-from tgmount.util import yes
+from tgmount.util import nn
 from .logger import logger
 
 

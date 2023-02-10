@@ -6,7 +6,7 @@ from tests.helpers.mocked.mocked_storage import StorageEntity
 from tests.integrational.helpers import mdict
 from tests.helpers.config import create_config
 from tests.integrational.integrational_test import TgmountIntegrationContext
-from tgmount.tgmount.root_config_reader import TgmountConfigReader
+from tgmount.tgmount.root_config_walker import TgmountRootConfigWalker
 
 from .fixtures import *
 

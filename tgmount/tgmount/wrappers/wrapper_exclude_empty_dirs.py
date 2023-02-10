@@ -1,14 +1,14 @@
 from tgmount import vfs
 
-from ..vfs_tree import VfsTreeDir
-from ..vfs_tree_types import (
+from tgmount.vfs.vfs_tree import VfsTreeDir
+from tgmount.vfs.vfs_tree_types import (
     TreeEventNewDirs,
     TreeEventRemovedDirs,
     TreeEventType,
     TreeEventRemovedItems,
     TreeEventNewItems,
 )
-from ..vfs_tree_wrapper_types import VfsTreeWrapperProto
+from tgmount.vfs.vfs_tree_wrapper_types import VfsTreeWrapperProto
 from .logger import logger as _logger
 
 
@@ -57,7 +57,6 @@ class WrapperEmpty(VfsTreeWrapperProto):
         self,
         events: list[TreeEventType[VfsTreeDir]],
     ) -> list[TreeEventType]:
-
         self._logger.debug(f"wrap_events({[e.__class__.__name__ for e in events]})")
         self._logger.trace(f"{events}")
 

@@ -2,13 +2,13 @@
 
 Creates virtual file system with files posted on telegram.  
 <!-- tgmount lets you to mount files uploaded to telegram as a virtual file system 
-so access them like regular files from a cloud without downloading. This allows to use
-regular desktop media players to listen to music streaming it directly from telegram servers. Pictures and videos 
+so access them like regular files from a cloud without downloading. This allows to use regular desktop media players to listen to music streaming it directly from telegram servers.  
 
 Features:
+* Files are streamed from the telegram cloud without downloading before
 * Flexible VFS structure configuration 
 * ZIP archives as folders
-* Multiple files organization strategies
+* Upload files by copying into a folder
 -->
 
 **VERY ALPHA SO FAR**

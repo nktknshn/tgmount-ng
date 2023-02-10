@@ -17,6 +17,7 @@ from tgmount.tgmount.providers.provider_filters import (
 from tgmount.tgmount.providers.provider_sources import SourcesProviderProto
 from tgmount.tgmount.providers.provider_producers import ProducersProviderBase
 from tgmount.tgmount.providers.provider_vfs_wrappers import ProviderVfsWrappersBase
+from tgmount.tgclient.fetcher import TelegramMessagesFetcher
 
 # from tgmount.tgmount.providers.provider_producers import ProducersProviderBase
 
@@ -33,7 +34,8 @@ class TgmountResources:
     caches: CacheFileFactoryFactory
     vfs_wrappers: ProviderVfsWrappersBase
 
-    fetchers_dict: Mapping
+    fetchers: Mapping[str, TelegramMessagesFetcher]
+
     extra: Extra = field(default_factory=Extra)
 
     def set_sources(self, sources: SourcesProviderProto):

@@ -2,12 +2,13 @@ import os
 from dataclasses import dataclass, field
 
 import pyfuse3
+from tgmount.fs.readable import FileSystemOperationsBase
 
 import tgmount.vfs as vfs
 from tgmount.util.col import map_keys
 
 from .inode import InodesRegistry, RegistryItem
-from .operations import FileSystemOperations
+from .readable import FileSystemOperationsBase
 
 
 def prepend_path_cur(parent_path: str):
@@ -50,7 +51,7 @@ class FileSystemOperationsUpdate:
         return f"FileSystemOperationsUpdate(new_files={list(self.new_files.keys())}, new_dirs={list(self.new_dirs.keys())}, removed_files={self.removed_files}, removed_dir_contents={self.removed_dirs}, update_items={self.update_items})"
 
 
-class FileSystemOperationsUpdatable(FileSystemOperations):
+class FileSystemOperationsUpdatable(FileSystemOperationsBase):
     def __init__(self, root: vfs.DirLike | None = None):
         super().__init__(root)
 
@@ -193,7 +194,7 @@ class FileSystemOperationsUpdatable(FileSystemOperations):
         for fh in fhs:
             self._handles.release_fh(fh)
 
-    async def _remove_item(self, item: FileSystemOperations.FsRegistryItem):
+    async def _remove_item(self, item: FileSystemOperationsBase.RegistryItem):
         removed = await self._remove_item_by_inode(item.inode)
 
         if removed is None:

@@ -80,7 +80,6 @@ class ListDocumentsOutput:
                     continue
                 row = []
                 for prop in self.HEADERS:
-
                     value = getattr(record, prop)
                     formatter = getattr(self, f"format_{prop}", None)
 
@@ -94,7 +93,7 @@ class ListDocumentsOutput:
 
                 rows.append(row)
 
-                if util.yes(record.message_object):
+                if util.nn(record.message_object):
                     rows.append([record.message_object])
 
             elif include_unsupported or only_unsupported:
@@ -127,7 +126,7 @@ class ListDocumentsOutput:
         )
 
     def format_text(self, text: str | None):
-        if util.yes(text) and len(text) > 0:
+        if util.nn(text) and len(text) > 0:
             if len(text) > self.TEXT_LIMIT:
                 return text[: self.TEXT_LIMIT].replace("\n", "\\n") + "..."
             else:
@@ -147,7 +146,7 @@ async def list_documents(
     classifier = ClassifierDefault()
 
     tg_filter = None
-    if util.yes(args.filter, str):
+    if util.nn(args.filter, str):
         filter_class = TelegramMessagesFetcher.FILTERS.get(args.filter)
         tg_filter = filter_class
 
@@ -177,7 +176,6 @@ async def list_documents(
         classes = classifier.classify_str(m)
 
         if factory.supports(m):
-
             types_str = (
                 ",".join(classes)
                 if args.print_all_matching_types
