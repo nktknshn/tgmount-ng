@@ -1,9 +1,11 @@
 from abc import abstractmethod
+import abc
 from dataclasses import dataclass
-from typing import Awaitable, Callable, Mapping, Type
+from typing import Any, Awaitable, Callable, Mapping, Optional, Type, TypeVar
 
 from tgmount import vfs
 from tgmount.tgclient.guards import *
+from tgmount.tgclient.message_types import MessageProto
 from tgmount.util import is_not_none, none_fallback, sanitize_string_for_path
 from .error import FileFactoryError
 from .types import FileFactoryProto
@@ -43,14 +45,14 @@ async def resolve_future_or_value(future_or_value: T | Awaitable[T]) -> T:
     return future_or_value
 
 
-class FileFactoryBase(FileFactoryProto[T], abc.ABC):
+class FileFactoryBase(FileFactoryProto[T]):
     """Takes a message and produces vfs.FileLike or vfs.FileContentProto"""
 
     _supported: dict[ClassName, FileFactoryItem] = {}
 
     def __init__(self, factory_props: Mapping | None = None) -> None:
+        self._factory_props = none_fallback(factory_props, {})
         self._cache: dict[MessageProto, Optional[Type[T]]] = {}
-        self._factory_props = factory_props
 
     @property
     def try_get_dict(self) -> Mapping[str, Type[TryGetFunc]]:
@@ -87,6 +89,14 @@ class FileFactoryBase(FileFactoryProto[T], abc.ABC):
     @property
     def supported(self) -> list[Type[SupportedClass]]:
         return list(map(lambda item: item.klass, self._supported.values()))
+
+    def update_factory_props(
+        self, factory_props: Mapping | Callable[[Mapping], Mapping]
+    ):
+        if callable(factory_props):
+            self._factory_props = factory_props(self._factory_props)
+        else:
+            self._factory_props = factory_props
 
     def supports(
         self, input_item: Any, *, factory_props: Mapping | None = None
@@ -126,7 +136,6 @@ class FileFactoryBase(FileFactoryProto[T], abc.ABC):
     def try_get_cls(
         self, input_item: Any, *, factory_props: Mapping | None = None
     ) -> Optional[Type[T]]:
-
         factory_props = none_fallback(
             factory_props, none_fallback(self._factory_props, {})
         )
@@ -147,7 +156,6 @@ class FileFactoryBase(FileFactoryProto[T], abc.ABC):
     def get_cls(
         self, supported_item: T, *, factory_props: Mapping | None = None
     ) -> Type[T]:
-
         klass = self.try_get_cls(supported_item, factory_props=factory_props)
 
         if klass is None:

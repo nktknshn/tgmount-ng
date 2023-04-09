@@ -4,10 +4,11 @@ from tgmount import vfs
 from tgmount.tgclient.guards import MessageDownloadable
 from tgmount.tgclient.message_types import MessageProto
 from tgmount.tgclient.messages_collection import MessagesCollection
+from tgmount.tgmount.file_factory.filefactory import TelegramFileExtra
 from tgmount.tgmount.producers.producer_plain import VfsTreeProducerPlainDir
 from tgmount.tgmount.vfs_tree_producer_types import (
-    VfsTreeProducerConfig,
-    VfsTreeProducerProto,
+    VfsTreeDirProducerConfig,
+    VfsTreeDirProducerProto,
 )
 from tgmount.tgmount.wrappers.wrapper_zips_as_dirs import WrapperZipsAsDirsProps
 from tgmount.util import nn
@@ -22,7 +23,7 @@ class VfsProducerZip(VfsTreeProducerPlainDir):
     def __init__(
         self,
         tree_dir: VfsTreeDir,
-        vfs_config: VfsTreeProducerConfig,
+        vfs_config: VfsTreeDirProducerConfig,
         props: WrapperZipsAsDirsProps,
     ) -> None:
         super().__init__(tree_dir, vfs_config)
@@ -122,11 +123,11 @@ class VfsProducerZip(VfsTreeProducerPlainDir):
             and isinstance(root_item, dict)
             and len(zip_tree_root_items) == 1
         ):
+            extra = zip_file.extra.try_get(TelegramFileExtra)
             # handle skip_single_root_subfolder props
-            if isinstance(zip_file.extra, tuple):
+            if nn(extra) and nn(extra.message_id):
                 # if there is a source message info in the extra
-                message_id = zip_file.extra[0]
-                zip_dir_name = f"{message_id}_{zip_tree_root_items_names[0]}"
+                zip_dir_name = f"{extra.message_id}_{zip_tree_root_items_names[0]}"
             else:
                 zip_dir_name = zip_tree_root_items_names[0]
 
@@ -173,7 +174,7 @@ class VfsProducerZip(VfsTreeProducerPlainDir):
     async def from_config(
         cls,
         resources,
-        vfs_config: VfsTreeProducerConfig,
+        vfs_config: VfsTreeDirProducerConfig,
         config: Mapping,
         tree_dir: VfsTreeDir,
     ):

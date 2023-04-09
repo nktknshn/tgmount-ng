@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import (
     Any,
@@ -13,6 +13,7 @@ from typing import (
     TypeVar,
     Union,
 )
+from tgmount.common.extra import Extra
 
 from tgmount.vfs.types.file import FileLike, FileContentWritableProto
 
@@ -78,7 +79,7 @@ class DirLike:
 
     creation_time: datetime = datetime.now()
 
-    extra: Optional[Any] = None
+    extra: Extra = field(default_factory=Extra)
 
     # writable: bool = False
 

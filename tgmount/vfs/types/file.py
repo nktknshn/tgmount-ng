@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import (
     Any,
@@ -12,6 +12,8 @@ from typing import (
     TypeVar,
 )
 
+from tgmount.common.extra import Extra
+
 
 @dataclass
 class FileLike:
@@ -20,17 +22,17 @@ class FileLike:
 
     creation_time: datetime = datetime.now()
 
-    extra: Optional[Any] = None
+    extra: Extra = field(default_factory=Extra)
     """ Any extra data attached to the FileLike  """
 
-    writable: bool = False
+    # writable: bool = False
 
     @staticmethod
     def guard(item: Any) -> TypeGuard["FileLike"]:
         return isinstance(item, FileLike)
 
     def __repr__(self) -> str:
-        return f"FileLike({self.name}, {self.content})"
+        return f"FileLike({self.name}, {self.content}, extra={self.extra})"
 
 
 T = TypeVar("T")

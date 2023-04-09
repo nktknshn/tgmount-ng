@@ -13,7 +13,7 @@ from tgmount.vfs.vfs_tree import VfsTree
 
 class VfsTreeExtensionProto(Protocol):
     VfsTree: Type[VfsTree] | None
-    FileSystemOperations: Type[fs.FileSystemOperations] | None
+    # FileSystemOperations: Type[fs.FileSystemOperations] | None
 
 
 class TgmountExtensionProto(
@@ -32,4 +32,7 @@ class TgmountExtensionProto(
         builder,
         tgmount: TgmountBase,
     ):
+        pass
+
+    async def create_vfs_tree(self, builder):
         pass

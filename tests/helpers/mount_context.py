@@ -2,7 +2,7 @@ import logging
 from os import stat_result
 import aiofiles
 from typing import Any, AsyncGenerator, Iterable
-from tgmount import tglog, vfs
+from tgmount import tglog, util, vfs
 from aiofiles import os
 
 async_listdir = aiofiles.os.listdir  # type:ignore
@@ -16,7 +16,7 @@ async def async_walkdir(
     subfiles: list[str] = []
 
     for subitem in await aiofiles.os.listdir(path):  # type:ignore
-        subitem_path = vfs.path_join(path, subitem)
+        subitem_path = util.path.path_join(path, subitem)
 
         if await os.path.isdir(subitem_path):
             subdirs.append(subitem_path)
@@ -39,7 +39,7 @@ class MountContext:
     caplog: Any
 
     def _path(self, *path: str) -> str:
-        return vfs.path_join(self.mnt_dir, *path)
+        return util.path.path_join(self.mnt_dir, *path)
 
     path = _path
 
@@ -49,7 +49,7 @@ class MountContext:
 
     async def listdir(self, *path: str, full_path=False) -> list[str]:
         return [
-            vfs.path_join(*path, f) if full_path else f
+            util.path.path_join(*path, f) if full_path else f
             for f in await async_listdir(self._path(*path))
         ]
 
@@ -69,7 +69,7 @@ class MountContext:
 
         for dirpath, dirnames, filenames in await async_walkdir(path):  # type: ignore
             res.append(dirpath)
-            res.extend([vfs.path_join(str(dirpath), str(fn)) for fn in filenames])
+            res.extend([util.path.path_join(str(dirpath), str(fn)) for fn in filenames])
 
         return set(res)
 

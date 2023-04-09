@@ -54,7 +54,7 @@ class TelegramFileUploader:
         return await self._client.send_message(self._entity, text)
 
     async def upload(
-        self, file_bytes: bytes, file_size: int, file_name: str
+        self, file_bytes: bytes, file_size: int, file_name: str, notify=True
     ) -> MessageDownloadable:
         self._logger.debug(f"Uploading {file_name} of {file_size} bytes")
 
@@ -77,7 +77,8 @@ class TelegramFileUploader:
 
             self._logger.debug(f"Uploaded {file_name}.")
 
-            await self.on_uploaded.notify(msg)
+            if notify:
+                await self.on_uploaded.notify(msg)
 
             return msg
         except Exception as e:

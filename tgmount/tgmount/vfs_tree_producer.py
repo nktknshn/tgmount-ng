@@ -1,5 +1,5 @@
-from typing import Sequence
-from tgmount import vfs, config
+from typing import Mapping, Sequence, Type
+from tgmount import util, vfs, config
 from tgmount.util import none_fallback, nn
 from tgmount.util.timer import Timer
 
@@ -9,7 +9,12 @@ from .root_config_types import RootConfigWalkingContext
 from .tgmount_resources import TgmountResources
 from .types import TgmountRootType
 from tgmount.vfs.vfs_tree import VfsTree, VfsTreeDir
-from .vfs_tree_producer_types import VfsTreeProducerExtensionProto, VfsDirConfig
+from .vfs_tree_producer_types import (
+    VfsTreeDirProducerConfig,
+    VfsTreeProducerExtensionProto,
+    VfsDirConfig,
+    VfsTreeDirProducerProto,
+)
 
 
 class VfsTreeProducer:
@@ -35,7 +40,7 @@ class VfsTreeProducer:
         tree_dir: VfsTreeDir | VfsTree,
         ctx=None,
     ):
-        """Produce content into `tree_dir` using `dir_config`"""
+        """Produce content into `tree_dir` using `resources` and `dir_config`"""
         config_reader = self.TgmountConfigReader()
 
         t1 = Timer()
@@ -55,7 +60,7 @@ class VfsTreeProducer:
             ),
         ):
             await self.produce_from_vfs_dir_config(
-                resources, tree_dir, path, vfs_dir_config
+                resources, vfs_dir_config, path, tree_dir
             )
 
         t1.stop()
@@ -67,45 +72,63 @@ class VfsTreeProducer:
     async def produce_from_vfs_dir_config(
         self,
         resources: TgmountResources,
-        tree_dir: VfsTreeDir | VfsTree,
+        vfs_dir_config: VfsDirConfig,
         path: str,
-        vfs_config: VfsDirConfig,
+        tree_dir: VfsTreeDir | VfsTree,
     ) -> VfsTreeDir:
         """Using `VfsDirConfig` produce content into `tree_dir`"""
-        global_path = vfs.path_join(tree_dir.path, path)
+        global_path = util.path.path_join(tree_dir.path, path)
 
-        if len(vfs.napp(global_path, True)) <= self.LOG_DEPTH:
+        if len(util.path.napp(global_path, True)) <= self.LOG_DEPTH:
             self.logger.info(f"Producing {global_path}")
         else:
             self.logger.debug(f"Producing {global_path}")
 
         # create the subdir
-        sub_dir = await tree_dir.create_dir(path)
+        vfs_tree_dir = await tree_dir.create_dir(path)
 
         # If the directory has any wrapper
-        if vfs_config.vfs_wrappers is not None:
-            for wrapper_cls, wrapper_arg in vfs_config.vfs_wrappers:
+        if vfs_dir_config.vfs_wrappers is not None:
+            for wrapper_cls, wrapper_arg in vfs_dir_config.vfs_wrappers:
                 wrapper = wrapper_cls.from_config(
-                    none_fallback(wrapper_arg, {}), sub_dir
+                    none_fallback(wrapper_arg, {}), vfs_tree_dir
                 )
-                sub_dir.add_wrapper(wrapper)
+                vfs_tree_dir.add_wrapper(wrapper)
 
         # If the directory has any producer
         if (
-            vfs_config.vfs_producer is not None
-            and vfs_config.vfs_producer_config is not None
+            vfs_dir_config.vfs_producer is not None
+            and vfs_dir_config.vfs_producer_config is not None
         ):
             # self.logger.debug(f"{sub_dir.path} uses {vfs_config.vfs_producer} producer")
 
-            producer = await vfs_config.vfs_producer.from_config(
+            producer = await self.create_dir_producer(
                 resources,
-                vfs_config.vfs_producer_config,
-                none_fallback(vfs_config.vfs_producer_arg, {}),
-                sub_dir,
+                vfs_dir_config.vfs_producer,
+                vfs_dir_config.vfs_producer_config,
+                none_fallback(vfs_dir_config.vfs_producer_arg, {}),
+                global_path,
+                vfs_tree_dir,
             )
             await producer.produce()
 
         for ext in self._extensions:
-            await ext.extend_vfs_tree_dir(resources, vfs_config, sub_dir)
+            await ext.extend_vfs_tree_dir(resources, vfs_dir_config, vfs_tree_dir)
 
-        return sub_dir
+        return vfs_tree_dir
+
+    async def create_dir_producer(
+        self,
+        resources: TgmountResources,
+        vfs_producer_klass: Type[VfsTreeDirProducerProto],
+        vfs_producer_config: VfsTreeDirProducerConfig,
+        vfs_producer_arg: Mapping,
+        path: str,
+        vfs_tree_dir: VfsTreeDir,
+    ):
+        return await vfs_producer_klass.from_config(
+            resources,
+            vfs_producer_config,
+            vfs_producer_arg,
+            vfs_tree_dir,
+        )

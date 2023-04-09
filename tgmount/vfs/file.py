@@ -11,6 +11,8 @@ from typing import (
 )
 
 import aiofiles
+from tgmount.common.extra import Extra
+from tgmount.util import none_fallback
 from tgmount.util.col import bytearray_write
 
 from tgmount.vfs.types.file import (
@@ -30,13 +32,17 @@ def vfile(
     fname: str,
     content: FileContentProto,
     creation_time: Optional[datetime] = None,
-    extra: Optional[Any] = None,
-    writable=False,
+    extra: Extra | None = None,
 ):
     if creation_time is None:
         creation_time = datetime.now()
 
-    return FileLike(fname, content, creation_time, extra, writable)
+    return FileLike(
+        fname,
+        content,
+        creation_time,
+        none_fallback(extra, Extra()),
+    )
 
 
 def file_content(
@@ -168,6 +174,10 @@ class FileContentWritableConsumer(FileContentWritableProto):
     def __init__(self) -> None:
         self._data: bytearray = bytearray()
 
+    @property
+    def data(self) -> bytes:
+        return bytes(self._data)
+
     async def seek_func(self, handle, n: int, w: int):
         raise NotImplementedError()
 
@@ -188,3 +198,20 @@ class FileContentWritableConsumer(FileContentWritableProto):
     @abstractmethod
     async def close_func(self, handle):
         return
+
+    @staticmethod
+    def on_close(on_close: Callable[[bytes], Awaitable]):
+        class FileContent(FileContentWritableConsumer):
+            def __repr__(self) -> str:
+                return f"FileContentWritableConsumer.FileContent({len(self.data)})"
+
+            def __init__(self) -> None:
+                super().__init__()
+
+            async def open_func(self) -> None:
+                pass
+
+            async def close_func(self, handle):
+                await on_close(self.data)
+
+        return FileContent()

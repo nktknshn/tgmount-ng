@@ -1,15 +1,32 @@
 from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Callable, Generic, Mapping, Type
+from typing import (
+    Any,
+    Callable,
+    ClassVar,
+    Generic,
+    Mapping,
+    Protocol,
+    Type,
+    TypeGuard,
+    TypeVar,
+    TypedDict,
+)
 
 from tgmount import vfs
+from tgmount.common.extra import Extra
 from tgmount.tgclient.guards import *
-from tgmount.util import none_fallback
+from tgmount.tgclient.message_types import MessageId
+from tgmount.tgclient.messages_collection import WithId
+from tgmount.tgclient.types import DocId
+from tgmount.util import nn, none_fallback
 from .types import (
     FileContentProviderProto,
 )
 from .filefactorybase import FileFactoryBase, TryGetFunc, resolve_future_or_value
+
+T = TypeVar("T", bound=WithId)
 
 FileFactorySupportedTypes = (
     MessageWithMusic
@@ -27,11 +44,27 @@ FileFactorySupportedTypes = (
     | T
 )
 
-TelegramFileExtra = tuple[int | None, int | None]
+
+# TelegramFileExtra = tuple[int | None, int | None]
+class TelegramFileExtra(Protocol):
+    extra_name: ClassVar[str] = "message"
+
+    message_id: MessageId
+    document_id: DocId | None
 
 
-def is_telegram_extra(value: Any) -> TypeGuard[TelegramFileExtra]:
-    return isinstance(value, tuple)
+class FactoryProps(TypedDict, total=False):
+    treat_as: list[str]
+    filename_mapping: Mapping[MessageId, str]
+
+
+def add_filename_mapping(message: T, filename: str, props: FactoryProps):
+    filename_mapping = props.get("filename_mapping", {})
+
+    return {
+        **props,
+        "filename_mapping": {**filename_mapping, message.id: filename},
+    }
 
 
 class FileFactoryDefault(FileFactoryBase[FileFactorySupportedTypes | T], Generic[T]):
@@ -40,16 +73,41 @@ class FileFactoryDefault(FileFactoryBase[FileFactorySupportedTypes | T], Generic
     def __init__(
         self,
         files_source: FileContentProviderProto,
-        factory_props: Mapping | None = None
-        # extra_files_source: Mapping[str, FileContentProviderProto] | None = None,
+        factory_props: FactoryProps | None = None
+        # TODO filename mapper
+        #
     ) -> None:
         super().__init__(factory_props=factory_props)
 
         self._files_source = files_source
         self._supported = {**self._supported}
 
+    def update_factory_props(
+        self, factory_props: FactoryProps | Callable[[FactoryProps], FactoryProps]
+    ):
+        if callable(factory_props):
+            self._factory_props = factory_props(self._factory_props)
+        else:
+            self._factory_props = factory_props
+
+    async def filename(
+        self, supported_item: T, *, factory_props: FactoryProps | None = None
+    ) -> str:
+        if nn(factory_props) and "filename_mapping" in factory_props:
+            custom_filename = factory_props["filename_mapping"].get(supported_item.id)
+
+            if nn(custom_filename):
+                return custom_filename
+
+        return await super().filename(
+            supported_item,
+            factory_props=factory_props,
+        )
+
     async def file_content(
-        self, supported_item: FileFactorySupportedTypes, factory_props=None
+        self,
+        supported_item: FileFactorySupportedTypes,
+        factory_props: FactoryProps | None = None,
     ) -> vfs.FileContentProto:
         if (
             get_file_content := self.get_cls_item(
@@ -61,7 +119,10 @@ class FileFactoryDefault(FileFactoryBase[FileFactorySupportedTypes | T], Generic
         return self._files_source.file_content(supported_item)
 
     async def file(
-        self, supported_item: FileFactorySupportedTypes, name=None, factory_props=None
+        self,
+        supported_item: FileFactorySupportedTypes,
+        name=None,
+        factory_props: FactoryProps | None = None,
     ) -> vfs.FileLike:
         creation_time = getattr(supported_item, "date", datetime.now())
 
@@ -74,9 +135,7 @@ class FileFactoryDefault(FileFactoryBase[FileFactorySupportedTypes | T], Generic
             supported_item.id if TelegramMessage.guard(supported_item) else None
         )
 
-        extra: TelegramFileExtra = (message_id, doc_id)
-
-        return vfs.FileLike(
+        file_like = vfs.FileLike(
             name=none_fallback(
                 name,
                 await resolve_future_or_value(
@@ -86,9 +145,18 @@ class FileFactoryDefault(FileFactoryBase[FileFactorySupportedTypes | T], Generic
             content=await resolve_future_or_value(
                 self.file_content(supported_item, factory_props=factory_props)
             ),
-            extra=extra,
             creation_time=creation_time,
         )
+
+        file_like.extra.create(
+            TelegramFileExtra.extra_name,
+            content={
+                "document_id": doc_id,
+                "message_id": message_id,
+            },
+        )
+
+        return file_like
 
 
 FileFactoryDefault.register(

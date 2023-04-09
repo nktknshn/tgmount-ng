@@ -17,7 +17,7 @@ from ..root_config_types import RootConfigWalkingContext
 from ..tgmount_resources import TgmountResources
 from tgmount.vfs.vfs_tree import VfsTreeDir
 from ..vfs_tree_producer import VfsTreeProducer
-from ..vfs_tree_producer_types import VfsTreeProducerConfig
+from ..vfs_tree_producer_types import VfsTreeDirProducerConfig
 from .logger import module_logger as _logger
 
 M = TypeVar("M", bound=MessageProto)
@@ -40,7 +40,7 @@ class VfsTreeProducerGrouperBase(abc.ABC):
     def __init__(
         self,
         tree_dir: VfsTreeDir,
-        config: VfsTreeProducerConfig,
+        config: VfsTreeDirProducerConfig,
         resources: TgmountResources,
         *,
         dir_structure=DEFAULT_ROOT_CONFIG,

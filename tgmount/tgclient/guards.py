@@ -14,6 +14,23 @@ from .message_types import (
 T = TypeVar("T")
 T_co = TypeVar("T_co", covariant=True)
 
+__all__ = [
+    "TelegramMessage",
+    "MessageWithMusic",
+    "MessageWithVoice",
+    "MessageWithSticker",
+    "MessageWithAnimated",
+    "MessageWithKruzhochek",
+    "MessageWithCompressedPhoto",
+    "MessageWithDocumentImage",
+    "MessageWithVideoFile",
+    "MessageWithVideo",
+    "MessageWithOtherDocument",
+    "MessageWithFilename",
+    "MessageDownloadable",
+    "WithTryGetMethodProto",
+]
+
 
 class ClassWithGuard(Protocol[T_co]):
     # __name__: ClassVar[str]

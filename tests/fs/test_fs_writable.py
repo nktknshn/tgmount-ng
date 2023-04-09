@@ -23,7 +23,6 @@ class DirContentTest(vfs.DirContentListWritable):
         return vfs.FileLike(
             filename,
             vfs.FileContentStringWritable(),
-            writable=True,
         )
 
 
@@ -47,9 +46,7 @@ async def test_fs_operations1(mnt_dir: str, caplog, files: FixtureFiles):
     # ctx.init_logging(logging.DEBUG, debug_fs_ops=True)
 
     dir1_files = [
-        vfs.vfile(
-            "file1.txt", FileContentStringWritable("file content"), writable=True
-        ),
+        vfs.vfile("file1.txt", FileContentStringWritable("file content")),
     ]
 
     structure = vfs.root(

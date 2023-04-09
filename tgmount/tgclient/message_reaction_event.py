@@ -2,7 +2,7 @@ from telethon.events.common import EventBuilder, EventCommon
 from telethon.tl.types import UpdateMessageReactions
 
 
-class MessageReactionEvent(EventBuilder):
+class MessageReaction(EventBuilder):
     def __init__(self, chats=None, *, blacklist_chats=False):
         super().__init__(chats, blacklist_chats=False, func=None)
 

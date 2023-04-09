@@ -5,7 +5,7 @@ from typing import Protocol, Type
 from tgmount import config, fs, tgclient
 from tgmount.common.extra import Extra
 from tgmount.error import TgmountError
-from tgmount.tgclient.events_disptacher import TelegramEventsDispatcher
+from tgmount.tgclient.events_dispatcher import TelegramEventsDispatcher
 from tgmount.tgclient.fetcher import TelegramMessagesFetcher
 from tgmount.tgclient.source.util import BLOCK_SIZE
 from tgmount.tgmount.cached_filefactory_factory import CacheFileFactoryFactory
@@ -65,8 +65,11 @@ class TgmountBuilderBase(abc.ABC):
 
     async def create_vfs_tree(self):
         for ext in self.extensions:
-            if nn(ext.VfsTree):
-                return ext.VfsTree()
+            vfs_tree = await ext.create_vfs_tree(self)
+            if nn(vfs_tree):
+                return vfs_tree
+            # if nn(ext.VfsTree):
+            #     return ext.VfsTree()
 
         return self.VfsTree()
 

@@ -17,7 +17,7 @@ from .filters_types import (
     FilterContext,
     FilterFromConfigProto,
     FilterParser,
-    FilterSingleMessage,
+    # FilterSingleMessage,
 )
 
 logger = _logger.getChild("filters")

@@ -8,8 +8,8 @@ from tgmount.tgmount.producers.grouperbase import (
 )
 from tgmount.vfs.vfs_tree import VfsTreeDir
 from tgmount.tgmount.vfs_tree_producer_types import (
-    VfsTreeProducerConfig,
-    VfsTreeProducerProto,
+    VfsTreeDirProducerConfig,
+    VfsTreeDirProducerProto,
 )
 from tgmount.util import func
 
@@ -38,10 +38,14 @@ def group_by_performer(
     return dict(result), no_performer
 
 
-class VfsTreeGroupByPerformer(VfsTreeProducerGrouperBase, VfsTreeProducerProto):
+class VfsTreeGroupByPerformer(VfsTreeProducerGrouperBase, VfsTreeDirProducerProto):
     @classmethod
     async def from_config(
-        cls, resources, config: VfsTreeProducerConfig, arg: Mapping, sub_dir: VfsTreeDir
+        cls,
+        resources,
+        config: VfsTreeDirProducerConfig,
+        arg: Mapping,
+        sub_dir: VfsTreeDir,
     ):
         return VfsTreeGroupByPerformer(
             config=config,

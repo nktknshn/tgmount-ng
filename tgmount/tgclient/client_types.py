@@ -5,7 +5,7 @@ from telethon import events
 from tgmount.tgclient.types import EntityId
 from tgmount.tgclient.guards import MessageDownloadable
 
-from tgmount.tgclient.message_reaction_event import MessageReactionEvent
+from tgmount.tgclient.message_reaction_event import MessageReaction
 from tgmount.tgclient.message_types import MessageProto
 
 from .types import InputDocumentFileLocation, InputPhotoFileLocation, TotalListTyped
@@ -13,7 +13,7 @@ from .types import InputDocumentFileLocation, InputPhotoFileLocation, TotalListT
 ListenerNewMessages = Callable[[events.NewMessage.Event], Awaitable[None]]
 ListenerRemovedMessages = Callable[[events.MessageDeleted.Event], Awaitable[None]]
 ListenerEditedMessage = Callable[
-    [events.MessageEdited.Event | MessageReactionEvent], Awaitable[None]
+    [events.MessageEdited.Event | MessageReaction], Awaitable[None]
 ]
 from telethon import types
 

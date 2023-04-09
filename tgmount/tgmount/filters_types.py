@@ -9,7 +9,7 @@ from tgmount.tgmount.file_factory.types import FileFactoryProto
 
 T = TypeVar("T")
 FilterAllMessages = FilterAllMessagesProto
-FilterSingleMessage = Callable[[MessageProto], T | None | bool]
+# FilterSingleMessage = Callable[[MessageProto], T | None | bool]
 Filter = FilterAllMessages
 FilterParser = Callable[[FilterConfigValue], list[Filter]]
 

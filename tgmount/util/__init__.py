@@ -1,7 +1,7 @@
 import random
 from typing import Any, Callable, Optional, Type, TypeGuard, TypeVar, overload
 
-
+from . import path
 from .col import find, sets_difference, dict_exclude
 from .guards import compose_guards
 
@@ -11,6 +11,7 @@ O = TypeVar("O")
 
 @overload
 def nn(value: Optional[T]) -> TypeGuard[T]:
+    """Type guarding alias for `value is not None` expression"""
     ...
 
 
@@ -83,27 +84,6 @@ def sanitize_string_for_path(name: str) -> str:
 
 import time
 from functools import wraps
-
-
-def measure_time(*, logger_func, threshold=None):
-    def measure_time(func):
-        @wraps(func)
-        async def inner_function(*args, **kwargs):
-            started = time.time_ns()
-            res = await func(*args, **kwargs)
-            duration = time.time_ns() - started
-            duration = duration / 1000 / 1000
-
-            if threshold is not None and duration < threshold:
-                return res
-
-            logger_func(f"{func} = {int(duration)} ms")
-
-            return res
-
-        return inner_function
-
-    return measure_time
 
 
 random_int = lambda max: lambda: int(max * random.random())

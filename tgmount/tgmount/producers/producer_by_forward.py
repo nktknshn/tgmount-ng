@@ -3,8 +3,8 @@ from typing import Iterable, Mapping
 import telethon
 from tgmount.tgclient.guards import MessageForwarded
 from tgmount.tgmount.vfs_tree_producer_types import (
-    VfsTreeProducerConfig,
-    VfsTreeProducerProto,
+    VfsTreeDirProducerConfig,
+    VfsTreeDirProducerProto,
 )
 
 from .grouperbase import GroupedMessages, VfsTreeProducerGrouperBase
@@ -16,7 +16,6 @@ async def group_by_forward(
     fws = {}
 
     for m in forwarded_messages:
-
         # XXX
         if m.forward is None:
             continue
@@ -57,13 +56,12 @@ async def group_by_forward(
 
 class VfsTreeGroupByForward(
     VfsTreeProducerGrouperBase,
-    VfsTreeProducerProto,
+    VfsTreeDirProducerProto,
 ):
     @classmethod
     async def from_config(
-        cls, resources, config: VfsTreeProducerConfig, arg: Mapping, sub_dir
+        cls, resources, config: VfsTreeDirProducerConfig, arg: Mapping, sub_dir
     ):
-
         return VfsTreeGroupByForward(
             config=config,
             dir_structure=arg.get(

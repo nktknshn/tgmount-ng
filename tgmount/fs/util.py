@@ -16,24 +16,9 @@ import pyfuse3
 from .logger import logger
 
 
-def measure_time_sync(*, logger_func):
-    def measure_time(func):
-        @wraps(func)
-        def inner_function(*args, **kwargs):
-            started = time.time_ns()
-            res = func(*args, **kwargs)
-            duration = time.time_ns() - started
-
-            logger_func(f"{func} = {int(duration/1000/1000)} ms")
-
-            return res
-
-        return inner_function
-
-    return measure_time
-
-
 def exception_handler(func):
+    """lets `pyfuse3.FUSEError` raise and suppress other exceptions with logging"""
+
     @wraps(func)
     async def inner_function(*args, **kwargs):
         try:

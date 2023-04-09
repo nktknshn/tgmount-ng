@@ -8,7 +8,7 @@ from tgmount.tgmount.producers.producer_by_sender import VfsTreeDirBySender
 from tgmount.tgmount.producers.producer_plain import VfsTreeProducerPlainDir
 from tgmount.tgmount.producers.producer_sysinfo import VfsTreeProducerSysInfo
 from tgmount.tgmount.producers.producer_zip import VfsProducerZip
-from tgmount.tgmount.vfs_tree_producer_types import VfsTreeProducerProto
+from tgmount.tgmount.vfs_tree_producer_types import VfsTreeDirProducerProto
 from tgmount.tgmount.wrappers.wrapper_exclude_empty_dirs import WrapperEmpty
 from .filters import (
     telegram_filters_to_filter_type,
@@ -45,7 +45,7 @@ class CachesProvider(CacheTypesProviderBase):
 
 
 class ProducersProvider(ProducersProviderBase):
-    producers: Mapping[str, Type[VfsTreeProducerProto]] = {
+    producers: Mapping[str, Type[VfsTreeDirProducerProto]] = {
         "PlainDir": VfsTreeProducerPlainDir,
         "BySender": VfsTreeDirBySender,
         "ByForward": VfsTreeGroupByForward,
@@ -70,7 +70,7 @@ class FilterProvider(FilterProviderBase):
         "Seq": Seq,
         "And": And,
         "ByReaction": ByReaction,
-        **telegram_filters_to_filter_type
+        **telegram_filters_to_filter_type,
     }
 
     filter_getters = [

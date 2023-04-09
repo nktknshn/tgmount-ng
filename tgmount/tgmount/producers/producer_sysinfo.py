@@ -10,8 +10,8 @@ from tgmount.tgmount.tgmount_resources import TgmountResources
 from tgmount.tgmount.tgmountbase import TgmountBase
 from tgmount.vfs.vfs_tree import VfsTreeDir
 from tgmount.tgmount.vfs_tree_producer_types import (
-    VfsTreeProducerConfig,
-    VfsTreeProducerProto,
+    VfsTreeDirProducerConfig,
+    VfsTreeDirProducerProto,
 )
 from tgmount.util import nn
 from tgmount.util.col import map_keys
@@ -89,7 +89,7 @@ class CacheFileFactoryFactoryProvider(Protocol):
     caches: CacheFileFactoryFactory
 
 
-class VfsTreeProducerSysInfo(VfsTreeProducerProto):
+class VfsTreeProducerSysInfo(VfsTreeDirProducerProto):
     logger = module_logger.getChild("VfsTreeProducerSysInfo")
 
     def __init__(
@@ -105,7 +105,7 @@ class VfsTreeProducerSysInfo(VfsTreeProducerProto):
     async def from_config(
         cls,
         resources: TgmountResources,
-        config: VfsTreeProducerConfig,
+        config: VfsTreeDirProducerConfig,
         arg: Mapping,
         vfs_tree_dir: VfsTreeDir,
     ) -> "VfsTreeProducerProto":

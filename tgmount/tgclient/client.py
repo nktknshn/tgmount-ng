@@ -22,7 +22,7 @@ from .client_types import (
     ListenerRemovedMessages,
 )
 from telethon import events
-from .message_reaction_event import MessageReactionEvent
+from .message_reaction_event import MessageReaction
 
 from .logger import logger as module_logger
 
@@ -140,11 +140,11 @@ class TgmountTelegramClient(
         self.add_event_handler(listener, events.MessageDeleted(chats=chats))
 
     def subscribe_edited_message(self, listener: ListenerEditedMessage, chats=None):
-        async def _update_reactions(event: MessageReactionEvent):
+        async def _update_reactions(event: MessageReaction):
             try:
                 await listener(event)
             except Exception as e:
                 self.logger.error(e)
 
         self.add_event_handler(listener, events.MessageEdited(chats=chats))
-        self.add_event_handler(_update_reactions, MessageReactionEvent(chats=chats))
+        self.add_event_handler(_update_reactions, MessageReaction(chats=chats))

@@ -1,12 +1,12 @@
 from abc import abstractmethod
-from typing import Iterable, Mapping, Optional, Protocol, TypeGuard, TypeVar
+from typing import Callable, Iterable, Mapping, Optional, Protocol, TypeGuard, TypeVar
 
 from telethon.tl.custom import Message
 
 from tgmount import vfs
-from tgmount.fs.util import measure_time_sync
 from tgmount.tgclient import guards
 from tgmount.util import is_not_none
+from tgmount.util.timer import measure_time_sync
 
 T = TypeVar("T")
 
@@ -44,6 +44,12 @@ class FileFactoryProto(Protocol[T]):
     """Constructs a `FileLike` from a message of type `T`"""
 
     @abstractmethod
+    def update_factory_props(
+        self, factory_props: Mapping | Callable[[Mapping], Mapping]
+    ):
+        ...
+
+    @abstractmethod
     def supports(self, message: Message) -> TypeGuard[T]:
         ...
 
@@ -75,10 +81,10 @@ class FileFactoryProto(Protocol[T]):
     async def size(self, message: Message) -> int:
         ...
 
-    @measure_time_sync(logger_func=print)
-    def filter_supported(
-        self, messages: Iterable[T], *, factory_props: Mapping | None = None
-    ):
-        msgs = [self.try_get(m, factory_props=factory_props) for m in messages]
+    # @measure_time_sync(logger_func=print)
+    # def filter_supported(
+    #     self, messages: Iterable[T], *, factory_props: Mapping | None = None
+    # ):
+    #     msgs = [self.try_get(m, factory_props=factory_props) for m in messages]
 
-        return list(filter(is_not_none, msgs))
+    #     return list(filter(is_not_none, msgs))

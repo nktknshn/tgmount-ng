@@ -2,19 +2,23 @@ from typing import Mapping, Sequence, TypeVar
 
 from tgmount import vfs
 from tgmount.tgclient.message_types import MessageProto
-from tgmount.tgclient.messages_collection import MessagesCollection, messages_difference
+from tgmount.tgclient.messages_collection import (
+    MessagesCollection,
+    messages_difference,
+)
+from tgmount.tgmount.tgmount_resources import TgmountResources
 
 from tgmount.vfs.vfs_tree import VfsTreeDir
 from tgmount.tgmount.vfs_tree_producer_types import (
-    VfsTreeProducerConfig,
-    VfsTreeProducerProto,
+    VfsTreeDirProducerConfig,
+    VfsTreeDirProducerProto,
 )
 
 from tgmount.util.func import snd, fst
 from .logger import module_logger as _logger
 
 
-class VfsTreeProducerPlainDir(VfsTreeProducerProto):
+class VfsTreeProducerPlainDir(VfsTreeDirProducerProto):
     """Produces a directory with a list of files"""
 
     logger = _logger.getChild(f"VfsTreeProducerPlainDir")
@@ -22,7 +26,7 @@ class VfsTreeProducerPlainDir(VfsTreeProducerProto):
     def __init__(
         self,
         tree_dir: VfsTreeDir,
-        config: VfsTreeProducerConfig,
+        config: VfsTreeDirProducerConfig,
     ) -> None:
         self._config = config
         self._tree_dir = tree_dir
@@ -36,8 +40,8 @@ class VfsTreeProducerPlainDir(VfsTreeProducerProto):
     @classmethod
     async def from_config(
         cls,
-        resources,
-        vfs_config: VfsTreeProducerConfig,
+        resources: TgmountResources,
+        vfs_config: VfsTreeDirProducerConfig,
         arg: Mapping,
         tree_dir: VfsTreeDir,
     ):
@@ -74,7 +78,7 @@ class VfsTreeProducerPlainDir(VfsTreeProducerProto):
         )
 
         self._config.message_source.event_edited_messages.subscribe(
-            self.update_edited_messages
+            self.update_edited_messages  # type: ignore
         )
 
     async def update_edited_messages(
@@ -85,7 +89,8 @@ class VfsTreeProducerPlainDir(VfsTreeProducerProto):
     ):
         """ """
         self._logger.debug(
-            f"update_edited_messages(old_messages={list(map(lambda m: m.id, old_messages))})"
+            f"update_edited_messages(old_messages="
+            f"{list(map(lambda m: m.id, old_messages))})"
         )
 
         if len(old_messages) == 0:
@@ -125,7 +130,13 @@ class VfsTreeProducerPlainDir(VfsTreeProducerProto):
         self._message_to_file.update(
             {
                 **{m.id: f for m, f in zip(new_messages, new_files)},
-                **{m.id: f for m, f in zip(map(snd, common_messages), updated_files)},
+                **{
+                    m.id: f
+                    for m, f in zip(
+                        map(snd, common_messages),
+                        updated_files,
+                    )
+                },
             }
         )
 
@@ -142,11 +153,17 @@ class VfsTreeProducerPlainDir(VfsTreeProducerProto):
             await self.update_items_in_vfs_tree(
                 {
                     item.name: (msg, item)
-                    for (msg, item) in zip(map(fst, common_messages), old_updated_files)
+                    for (msg, item) in zip(
+                        map(fst, common_messages),
+                        old_updated_files,
+                    )
                 },
                 {
                     item.name: (msg, item)
-                    for (msg, item) in zip(map(snd, common_messages), updated_files)
+                    for (msg, item) in zip(
+                        map(snd, common_messages),
+                        updated_files,
+                    )
                 },
                 update_content_dict,
             )
@@ -160,22 +177,20 @@ class VfsTreeProducerPlainDir(VfsTreeProducerProto):
         await self._tree_dir.update_content(update_content_dict)
 
     async def update_new_messages(self, source, new_messages: list[MessageProto]):
-        self._logger.debug(
-            f"update_new_messages({list(map(lambda m: m.id, new_messages))})"
-        )
+        self._logger.debug(f"update_new_messages({[m.id for m in new_messages]})")
 
         if len(new_messages) == 0:
             return
 
-        new_messages_set = await self._config.apply_filters(new_messages)
+        new_messages_filtered = await self._config.apply_filters(new_messages)
 
         new_files: list[vfs.FileLike] = [
-            await self._config.produce_file(m) for m in new_messages_set
+            await self._config.produce_file(m) for m in new_messages_filtered
         ]
 
         self._message_to_file.update(
             {
-                **{m.id: f for m, f in zip(new_messages_set, new_files)},
+                **{m.id: f for m, f in zip(new_messages_filtered, new_files)},
             }
         )
 

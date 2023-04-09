@@ -4,10 +4,11 @@ import telethon
 
 from tgmount.tgclient.message_types import MessageProto
 from tgmount.tgmount.vfs_tree_producer_types import (
-    VfsTreeProducerConfig,
-    VfsTreeProducerProto,
+    VfsTreeDirProducerConfig,
+    VfsTreeDirProducerProto,
 )
-from tgmount.util import func, measure_time
+from tgmount.util import func
+from tgmount.util.timer import measure_time
 
 from .grouperbase import GroupedMessages, VfsTreeProducerGrouperBase
 
@@ -40,11 +41,10 @@ async def get_message_sender_display_name(
 
 
 def get_get_key(*, use_get_sender=True):
-    """Retuns a async function that gets from a message a key for grouping"""
+    """Returns an async function that gets from a message a key for grouping"""
 
     @measure_time(logger_func=_logger.getChild("VfsTreeDirBySender").info, threshold=3)
     async def get_key(m: MessageProto) -> str | None:
-
         if m.from_id is None:
             return
 
@@ -65,7 +65,6 @@ def get_get_key(*, use_get_sender=True):
 async def group_by_sender(
     messages: Iterable[MessageProto], minimum=1, use_get_sender=False
 ) -> tuple[Mapping[str, list[MessageProto]], list[MessageProto], list[MessageProto],]:
-
     return await func.group_by_func_async(
         get_get_key(use_get_sender=use_get_sender),
         messages,
@@ -73,7 +72,7 @@ async def group_by_sender(
     )
 
 
-class VfsTreeDirBySender(VfsTreeProducerGrouperBase, VfsTreeProducerProto):
+class VfsTreeDirBySender(VfsTreeProducerGrouperBase, VfsTreeDirProducerProto):
     def __init__(
         self, tree_dir, config, resources, *, dir_structure, use_get_sender
     ) -> None:
@@ -82,9 +81,8 @@ class VfsTreeDirBySender(VfsTreeProducerGrouperBase, VfsTreeProducerProto):
 
     @classmethod
     async def from_config(
-        cls, resources, config: VfsTreeProducerConfig, arg: Mapping, sub_dir
+        cls, resources, config: VfsTreeDirProducerConfig, arg: Mapping, sub_dir
     ):
-
         return VfsTreeDirBySender(
             resources=resources,
             tree_dir=sub_dir,
@@ -97,7 +95,6 @@ class VfsTreeDirBySender(VfsTreeProducerGrouperBase, VfsTreeProducerProto):
         )
 
     async def group_messages(self, messages: Iterable[MessageProto]) -> GroupedMessages:
-
         by_user, less, nones = await group_by_sender(
             messages, minimum=1, use_get_sender=self.use_get_sender
         )

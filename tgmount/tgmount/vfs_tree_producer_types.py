@@ -8,11 +8,14 @@ from tgmount.tgclient.message_types import MessageProto
 from tgmount.tgmount.file_factory import FileFactoryProto
 from tgmount.tgmount.filters_types import Filter
 from tgmount import config
+
+# XXX circular import
+# from tgmount.tgmount.tgmount_resources import TgmountResources
 from tgmount.vfs.vfs_tree import VfsTreeDir
 from tgmount.vfs.vfs_tree_wrapper_types import VfsTreeWrapperProto
 
 
-class VfsTreeProducerConfig:
+class VfsTreeDirProducerConfig:
     """Wraps `message_source` with other"""
 
     message_source: MessageSourceProto
@@ -35,11 +38,13 @@ class VfsTreeProducerConfig:
         self._messages: list[MessageProto] | None = None
 
     async def produce_file(self, m: MessageProto):
+        """Using the file factory produce a file from a message"""
         return await self.factory.file(m, factory_props=self.factory_props)
 
     async def apply_filters(
         self, messages: Iterable[MessageProto]
     ) -> list[MessageProto]:
+        """Applies filters from config to the messages sequence"""
         messages = list(messages)
 
         for f in self.filters:
@@ -47,21 +52,18 @@ class VfsTreeProducerConfig:
 
         return messages
 
-    async def _apply_all_filters(self, input_messages: list[MessageProto]):
-        filtered = await self.apply_filters(input_messages)
-        return filtered
-
     async def get_messages(self) -> list[MessageProto]:
-        """Get messages list from message_source, make set and apply filters"""
+        """Get messages list from message_source filtered with the filters
+        from config"""
         messages = await self.message_source.get_messages()
 
         if self._messages is None:
-            self._messages = await self._apply_all_filters(messages)
+            self._messages = await self.apply_filters(messages)
 
         return self._messages
 
     def set_message_source(self, message_source: MessageSourceProto):
-        return VfsTreeProducerConfig(
+        return VfsTreeDirProducerConfig(
             message_source=message_source,
             factory=self.factory,
             filters=self.filters,
@@ -71,18 +73,18 @@ class VfsTreeProducerConfig:
 
 @dataclass
 class VfsDirConfig:
-    """Contains information for creating a `VfsProducer`"""
+    """Contains information to create a `VfsTreeDirProducer`"""
 
     dir_config: config.DirConfig
     """ Config this structure was sourced from """
 
-    vfs_producer: Type["VfsTreeProducerProto"] | None
+    vfs_producer: Type["VfsTreeDirProducerProto"] | None
     """ Producer for a vfs structure content """
 
     vfs_producer_arg: Optional[Mapping] = None
     """ Producer constructor argument """
 
-    vfs_producer_config: Optional[VfsTreeProducerConfig] = None
+    vfs_producer_config: Optional[VfsTreeDirProducerConfig] = None
 
     vfs_wrappers: Optional[
         list[tuple[Type[VfsTreeWrapperProto], Optional[Mapping]]]
@@ -90,9 +92,9 @@ class VfsDirConfig:
     # vfs_wrapper_arg: Optional[Type[Mapping]] = None
 
 
-class VfsTreeProducerProto(Protocol):
+class VfsTreeDirProducerProto(Protocol):
     @abstractmethod
-    async def produce(self):
+    async def produce(self) -> None:
         ...
 
     @classmethod
@@ -100,12 +102,12 @@ class VfsTreeProducerProto(Protocol):
     async def from_config(
         cls,
         resources,
-        config: "VfsTreeProducerConfig",
+        config: VfsTreeDirProducerConfig,
         arg: Mapping,
-        dir,
+        dir: VfsTreeDir,
         # dir: VfsTreeDir,
         # XXX
-    ) -> "VfsTreeProducerProto":
+    ) -> "VfsTreeDirProducerProto":
         ...
 
 

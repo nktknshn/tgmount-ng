@@ -1,6 +1,7 @@
 from abc import abstractclassmethod, abstractmethod
 from dataclasses import dataclass
 from typing import Generic, Mapping, Protocol, TypeVar, Union
+from tgmount.error import TgmountError
 
 from tgmount import vfs
 
@@ -58,3 +59,13 @@ TreeEventType = (
     | TreeEventNewDirs[T]
     | TreeEventUpdatedItems[T]
 )
+
+
+class VfsTreeError(TgmountError):
+    pass
+
+
+class VfsTreeNotFoundError(TgmountError):
+    def __init__(self, *args: object, path: str) -> None:
+        super().__init__(*args)
+        self.path = path

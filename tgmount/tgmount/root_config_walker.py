@@ -2,7 +2,7 @@ import logging
 import os
 from typing import AsyncGenerator, Mapping, Sequence, TypeVar, Generator
 
-from tgmount import config, vfs
+from tgmount import config, util, vfs
 from tgmount.config.config import ConfigParser
 from tgmount.config.config_type import ConfigParserFilter
 from tgmount.tgmount.filters_types import FilterConfigValue
@@ -10,7 +10,7 @@ from tgmount.util import none_fallback, nn
 
 from .root_config_types import RootConfigWalkingContext
 from .tgmount_resources import TgmountResources
-from .vfs_tree_producer_types import VfsTreeProducerConfig, VfsDirConfig
+from .vfs_tree_producer_types import VfsTreeDirProducerConfig, VfsDirConfig
 from dataclasses import dataclass
 from .logger import module_logger as _logger
 
@@ -41,7 +41,7 @@ class TgmountRootConfigWalker:
         return sources
 
     def walk_dir_props(self, dir_config: config.DirConfig, *, current_path=[]):
-        current_path_str = vfs.path_join(*current_path)
+        current_path_str = util.path.path_join(*current_path)
         other_keys = set(dir_config.other_keys.keys())
 
         yield dir_config
@@ -265,7 +265,7 @@ class TgmountRootConfigWalker:
                 vfs_wrappers.append((wrapper_cls, wrapper_arg))
 
         if message_source is not None:
-            producer_config = VfsTreeProducerConfig(
+            producer_config = VfsTreeDirProducerConfig(
                 message_source=message_source,
                 factory=current_file_factory,
                 filters=filters,

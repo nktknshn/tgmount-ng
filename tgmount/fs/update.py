@@ -2,6 +2,7 @@ import os
 from dataclasses import dataclass, field
 
 import pyfuse3
+from tgmount import util
 from tgmount.fs.readable import FileSystemOperationsBase
 
 import tgmount.vfs as vfs
@@ -12,7 +13,7 @@ from .readable import FileSystemOperationsBase
 
 
 def prepend_path_cur(parent_path: str):
-    return lambda path: vfs.norm_path(parent_path + "/" + path, True)
+    return lambda path: util.path.norm_path(parent_path + "/" + path, True)
 
 
 @dataclass
@@ -48,11 +49,16 @@ class FileSystemOperationsUpdate:
         )
 
     def __repr__(self) -> str:
-        return f"FileSystemOperationsUpdate(new_files={list(self.new_files.keys())}, new_dirs={list(self.new_dirs.keys())}, removed_files={self.removed_files}, removed_dir_contents={self.removed_dirs}, update_items={self.update_items})"
+        return (
+            f"FileSystemOperationsUpdate(new_files={list(self.new_files.keys())}, "
+            f"new_dirs={list(self.new_dirs.keys())}, removed_files="
+            f"{self.removed_files}, removed_dir_contents={self.removed_dirs}, "
+            f"update_items={self.update_items})"
+        )
 
 
 class FileSystemOperationsUpdatable(FileSystemOperationsBase):
-    def __init__(self, root: vfs.DirLike | None = None):
+    def __init__(self, root: vfs.DirContentProto | None = None):
         super().__init__(root)
 
     async def update(self, update: FileSystemOperationsUpdate):
@@ -146,23 +152,6 @@ class FileSystemOperationsUpdatable(FileSystemOperationsBase):
                 )
 
             await self._remove_item(item)
-
-        # for path, dir_like_or_content in update.update_dir_content.items():
-        #     item = self.inodes.get_by_path(path)
-
-        #     if item is None:
-        #         self.logger.debug(
-        #             f"on_update: update_dir_content: {path} is not in inodes"
-        #         )
-        #         continue
-
-        #     if not isinstance(item.data.structure_item, vfs.DirLike):
-        #         self.logger.error(
-        #             f"on_update: update_dir_content: {path} is not a folder"
-        #         )
-        #         continue
-
-        #     item.data.structure_item.content = dir_like_or_content
 
     async def _invalidate_children_by_path(
         self, path: list[bytes], parent_inode: int = InodesRegistry.ROOT_INODE

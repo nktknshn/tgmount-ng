@@ -8,8 +8,9 @@ import pyfuse3
 
 from tgmount import vfs
 from tgmount.error import TgmountError
-from tgmount.util import measure_time, nn
+from tgmount.util import map_none, nn
 from tgmount.util.lock import Lock
+from tgmount.util.timer import measure_time
 
 from .fh import FileSystemHandles
 from .inode import InodesRegistry, RegistryItem, RegistryRoot
@@ -41,15 +42,17 @@ InodesRegistryItem = RegistryItem[FileSystemItem] | RegistryRoot[FileSystemItem]
 
 
 class FileSystemOperationsBase(pyfuse3.Operations):
-    RegistryItem = RegistryItem[FileSystemItem] | RegistryRoot[FileSystemItem]
     logger = logger.getChild(f"FileSystemOperationsBase")
+
+    RegistryItem = RegistryItem[FileSystemItem] | RegistryRoot[FileSystemItem]
 
     def __init__(
         self,
-        root: vfs.DirLike | None = None,
+        root: vfs.DirContentProto | None = None,
     ):
         super(FileSystemOperationsBase, self).__init__()
-        self._root = root
+
+        self._root = map_none(root, vfs.root)
 
         """ Locks while updating """
         self._update_lock = Lock(
@@ -59,10 +62,12 @@ class FileSystemOperationsBase(pyfuse3.Operations):
         if nn(root):
             self._init()
 
-    def init_root(self, root: vfs.DirLike):
+        self.initialized = bool(root)
+
+    def init_root(self, root: vfs.DirContentProto):
         if self._root is not None:
             raise TgmountError(f"FileSystem is already initiated")
-        self._root = root
+        self._root = vfs.root(root)
         self._init()
 
     def _init(self):
@@ -82,6 +87,7 @@ class FileSystemOperationsBase(pyfuse3.Operations):
             ),
             last_inode=last_inode,
         )
+        self.initialized = True
 
     def _init_handles(self, last_fh=None):
         self._handles = FileSystemHandles[InodesRegistryItem](last_fh=last_fh)
@@ -158,7 +164,7 @@ class FileSystemOperationsBase(pyfuse3.Operations):
             self.add_subitem(new_item, parent_inode)
             return
 
-        self.logger.debug(f"update_subitem: old={old_fs_item}")
+        self.logger.debug(f"update_subitem: old={old_fs_item} new={new_item}")
 
         if self._bytes_to_str(old_fs_item.name) != new_item.name:
             self.logger.debug(f"update_subitem: item renamed")
@@ -191,7 +197,8 @@ class FileSystemOperationsBase(pyfuse3.Operations):
 
     def add_subitem(self, vfs_item: vfs.DirContentItem, parent_inode: int):
         self.logger.debug(
-            f"add_subitem: {vfs_item.name}, parent_inode={parent_inode} ({self.inodes.get_item_path(parent_inode)})"
+            f"add_subitem: {vfs_item.name}, parent_inode={parent_inode} "
+            f"({self.inodes.get_item_path(parent_inode)})"
         )
 
         fs_item = self.create_FileSystemItem(
@@ -226,9 +233,7 @@ class FileSystemOperationsBase(pyfuse3.Operations):
             self.logger.error(f"= getattr({inode}): missing in inodes registry")
             raise pyfuse3.FUSEError(errno.ENOENT)
 
-        self.logger.debug(f"getattr({inode}) = {item.name}")
-
-        self.logger.debug(f"= getattr({inode},)\t{item.data.structure_item.name}")
+        self.logger.debug(f"= getattr({item.data.structure_item.name})")
 
         return item.data.attrs
 
@@ -236,6 +241,7 @@ class FileSystemOperationsBase(pyfuse3.Operations):
     @exception_handler
     async def _read_dir_content(self, parent_item: InodesRegistryItem):
         self.logger.debug(f"_read_dir_content {parent_item.name}")
+
         async with self._update_lock:
             handle = None
             structure_item = parent_item.data.structure_item
@@ -260,10 +266,9 @@ class FileSystemOperationsBase(pyfuse3.Operations):
     async def lookup(
         self, parent_inode: int, name: bytes, ctx=None
     ) -> pyfuse3.EntryAttributes:
-        # Calls to lookup acquire a read-lock on the inode of the parent directory (meaning that lookups in the same
-        #         directory may run concurrently, but never at the same time as e.g. a rename or mkdir operation).
-
-        self.logger.debug(f"= lookup({parent_inode}, {name})")
+        # Calls to lookup acquire a read-lock on the inode of the parent directory
+        # (meaning that lookups in the same directory may run concurrently,
+        # but never at the same time as e.g. a rename or mkdir operation).
 
         parent_item = self._inodes.get_item_by_inode(parent_inode)
 
@@ -273,13 +278,11 @@ class FileSystemOperationsBase(pyfuse3.Operations):
             )
             raise pyfuse3.FUSEError(errno.ENOENT)
 
-        self.logger.debug(f"lookup(): parent_item={parent_item.name}")
-
         if not vfs.DirLike.guard(parent_item.data.structure_item):
             self.logger.error("lookup(): parent_item is not DirLike")
             raise pyfuse3.FUSEError(errno.ENOENT)
 
-        # child_inodes = self._inodes.get_items_by_parent(parent_inode)
+        # self.logger.debug(f"lookup({parent_item.name})")
 
         if not self._inodes.was_content_read(parent_item.inode):
             await self._read_dir_content(parent_item)
@@ -288,12 +291,10 @@ class FileSystemOperationsBase(pyfuse3.Operations):
         item = self._inodes.get_child_item_by_name(name, parent_inode)
 
         if item is None:
-            self.logger.debug(
-                f"lookup(parent_inode={parent_inode},name={name}): not found"
-            )
+            self.logger.debug(f"lookup({parent_item.name}, {name}): not found")
             raise pyfuse3.FUSEError(errno.ENOENT)
 
-        self.logger.debug(f"lookup(): returning {item}")
+        self.logger.debug(f"lookup({parent_item.name}, {name}): returning {item}")
 
         return item.data.attrs
 
@@ -310,7 +311,8 @@ class FileSystemOperationsBase(pyfuse3.Operations):
 
         if item is None:
             self.logger.error(
-                f"opendir({inode}): missing item. inodes: {list(self._inodes._inodes.keys())}"
+                f"opendir({inode}): missing item. inodes: "
+                f"{list(self._inodes._inodes.keys())}"
             )
             raise pyfuse3.FUSEError(errno.EBADF)
 
@@ -350,7 +352,9 @@ class FileSystemOperationsBase(pyfuse3.Operations):
         self.logger.debug(f"= readdir({dir_item.name}, fh={fh}, off={off})")
 
         if isinstance(dir_item, vfs.DirLike):
-            self.logger.error("= readdir(fh={fh}, off={off}): dir_item is not a folder")
+            self.logger.error(
+                f"= readdir(fh={fh}, off={off}): dir_item is not a folder"
+            )
             raise pyfuse3.FUSEError(errno.ENOTDIR)
 
         content = self._inodes.get_items_by_parent(dir_item)
@@ -386,7 +390,8 @@ class FileSystemOperationsBase(pyfuse3.Operations):
 
         if item is None:
             self.logger.debug(
-                f"releasedir(): missing {fh} in open handles. Probably the directory was removed."
+                f"releasedir(): missing {fh} in open handles. Probably the "
+                "directory was removed."
             )
             return
 
@@ -422,7 +427,8 @@ class FileSystemOperationsBase(pyfuse3.Operations):
 
         # parent_dir.data.structure_item.writable
         self.logger.debug(
-            f"= open({inode}, flags={flags_to_str(flags)}) = {item.data.structure_item.name}"
+            f"= open({inode}, flags={flags_to_str(flags)}) = "
+            f"{item.data.structure_item.name}"
         )
 
         if flags & os.O_RDWR or flags & os.O_WRONLY:

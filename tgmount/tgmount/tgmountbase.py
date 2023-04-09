@@ -7,32 +7,35 @@ from telethon import events
 from tgmount import main, tgclient, tglog, vfs, config
 from tgmount.common.extra import Extra
 from tgmount.fs.update import FileSystemOperationsUpdate, FileSystemOperationsUpdatable
-from tgmount.tgclient.events_disptacher import EntityId, TelegramEventsDispatcher
-from tgmount.tgclient.message_reaction_event import MessageReactionEvent
+from tgmount.tgclient.events_dispatcher import TelegramEventsDispatcher
+from tgmount.tgclient.message_reaction_event import MessageReaction
 from tgmount.tgclient.message_types import MessageProto
+from tgmount.tgclient.types import (
+    EntityId,
+    MessageDeletedEvent,
+    MessageEditedEvent,
+    MessageReactionEvent,
+    NewMessageEvent,
+)
 from tgmount.tgmount.vfs_tree_producer import VfsTree, VfsTreeProducer
-from tgmount.util import measure_time, none_fallback
+from tgmount.util import none_fallback
+from tgmount.util.timer import measure_time
 from tgmount.util.lock import Lock
 
 from tgmount.error import TgmountError
 from .logger import module_logger as _logger
 from .tgmount_resources import TgmountResources
 from tgmount.vfs.vfs_tree import TreeListener, VfsTreeDir
-from tgmount.vfs.vfs_tree_types import (
-    TreeEventNewDirs,
-    TreeEventNewItems,
-    TreeEventRemovedDirs,
-    TreeEventRemovedItems,
-    TreeEventType,
-    TreeEventUpdatedItems,
-)
+from tgmount.vfs import vfs_tree_types as tree_event
 
 
-class TgmountBase(abc.ABC):
+class TgmountBase:
     """
-    Wraps the application state and all the async initialization, connects all the app parts together
+    Wraps the application state and all the async initialization, connects
+    all the app parts together
 
-    Connects VfsTree and FilesystemOperations by dispatching events from the virtual tree to FilesystemOperations
+    Connects VfsTree and FilesystemOperations by dispatching events from
+    the virtual tree to FilesystemOperations
     """
 
     logger = _logger.getChild("TgmountBase")
@@ -60,8 +63,10 @@ class TgmountBase(abc.ABC):
         self._resources = resources
         self._mount_dir: Optional[str] = mount_dir
 
+        """ Ensures that changes are atomic """
         self._update_lock = Lock("TgmountBase._update_lock", self.logger, tglog.TRACE)
 
+    # region properties
     @property
     def fs(self):
         return self._fs
@@ -106,16 +111,19 @@ class TgmountBase(abc.ABC):
     def client(self):
         return self._client
 
+    # endregion
+
     async def fetch_messages(self):
-        """Fetch initial messages lists from message_sources"""
+        """Fetches initial messages lists from message_sources"""
 
         self.logger.info(
-            f"Fetching initial messages from ({list(self._resources.fetchers.keys())})..."
+            f"Fetching initial messages from "
+            f"({list(self.resources.fetchers.keys())})..."
         )
 
-        for k, fetcher in self._resources.fetchers.items():
+        for k, fetcher in self.resources.fetchers.items():
             self.logger.info(f"Fetching from '{k}'...")
-            source = self._resources.message_sources.get(k)
+            source = self.resources.message_sources.get(k)
 
             assert source
 
@@ -127,22 +135,48 @@ class TgmountBase(abc.ABC):
 
         self.logger.info(f"Done fetching.")
 
+    async def resume_dispatcher(self):
+        await self.events_dispatcher.resume()
+
     """ 
-    New way:
-        0. TgmountBase subscribeb to client updates
-        1. Telegram receives update
+    - TgmountBase subscribed to client updates
+    - TelegramClient receives an event
+    - TgmountBase receives an event
         - Update lock here
-        2. Update goes into the dispatcher
-        3. Disptacher if not paused (it is paused during initial messages fetching) passes update into the message source
-        4. Message source passes update to the subscribed producers
-        5. Producers update the VfsTree
-        6. VfsTree generates events
-        7. TgmountBase receives them turning into FileOperations update and passing to it
-        - Unlock here
+    - TgmountBase passes event to TelegramEventsDispatcher and starts exclusive 
+        listening for events from VfsTree. (User actions may also generate events 
+        concurrently and they will be caught).
+    - TelegramEventsDispatcher, if not paused (it is paused during initial 
+        messages fetching), turns events into calls to MessageSources update methods
+        (add_message, remove_message or edit_message).
+    - MessageSource filters incoming messages with the attached filters.
+    - MessageSource updates containing messages list (adds or removes messages or 
+    updates the list depending on the event type).
+    - MessageSource notifies the subscribed VfsTreeDirProducers with the messages.
+    - VfsTreeDirProducer updates the VfsTreeDir which it is responsible for.
+        - VfsTreeDirProducer has access to tgmount resources like file_factory.
+        - VfsTreeDirProducer removes vfs item from the directory or creates new
+            files by the file factory
+    - This generates events (TreeEventType) from VfsTree
+    - TgmountBase receives them turning into FileOperations update and passing to it
+    - FileOperations process update, updating inodes etc
+        - Update unlock here
+
+    - User does something in the mounted filesystem
+    - a FileOperations method called
+    - FileOperations calls a method of a FileLike or a DirLike
+    - FileLike or a DirLike methods update VfsTree
+    - VfsTree generates `TreeEventType`
+    - TgmountBase receives them turning into `FileSystemOperationsUpdate`
     """
 
+    # region events handlers
     @measure_time(logger_func=logger.info)
-    async def on_new_message(self, entity_id: EntityId, event: events.NewMessage.Event):
+    async def on_new_message(
+        self,
+        entity_id: EntityId,
+        event: NewMessageEvent,
+    ):
         self.logger.info(
             f"on_new_message({entity_id}, {MessageProto.repr_short(event.message)})"
         )
@@ -156,14 +190,12 @@ class TgmountBase(abc.ABC):
 
             if len(listener.events) > 0:
                 self.logger.debug(f"Tree generated {len(listener.events)} events")
-                await self._on_vfs_tree_update(listener.events)
+                await self._dispatch_tree_events_to_filesystem(listener.events)
 
         # self.logger.info(f"on_new_message() done")
 
     @measure_time(logger_func=logger.info)
-    async def on_delete_message(
-        self, entity_id: EntityId, event: events.MessageDeleted.Event
-    ):
+    async def on_delete_message(self, entity_id: EntityId, event: MessageDeletedEvent):
         self.logger.info(f"on_delete_message({entity_id}, {event.deleted_ids})")
         listener = TreeListener(self._vfs_tree, exclusively=True)
 
@@ -175,7 +207,7 @@ class TgmountBase(abc.ABC):
 
             if len(listener.events) > 0:
                 self.logger.debug(f"Tree generated {len(listener.events)} events")
-                await self._on_vfs_tree_update(listener.events)
+                await self._dispatch_tree_events_to_filesystem(listener.events)
 
         # self.logger.info(f"on_delete_message() done")
 
@@ -183,15 +215,17 @@ class TgmountBase(abc.ABC):
     async def on_edited_message(
         self,
         entity_id: EntityId,
-        event: events.MessageEdited.Event | MessageReactionEvent.Event,
+        event: MessageEditedEvent | MessageReactionEvent,
     ):
         if isinstance(event, events.MessageEdited.Event):
             self.logger.info(
-                f"on_edited_message({entity_id}, {MessageProto.repr_short(event.message)})"
+                f"on_edited_message({entity_id}, "
+                f"{MessageProto.repr_short(event.message)})"
             )
         else:
             self.logger.info(
-                f"on_edited_message({entity_id}, reaction update for message {event.msg_id})"
+                f"on_edited_message({entity_id}, reaction update for "
+                f"message {event.msg_id})"
             )
 
         self.logger.trace(event)
@@ -209,85 +243,86 @@ class TgmountBase(abc.ABC):
 
             if len(listener.events) > 0:
                 self.logger.debug(f"Tree generated {len(listener.events)} events")
-                await self._on_vfs_tree_update(listener.events)
+                await self._dispatch_tree_events_to_filesystem(listener.events)
 
-    # @measure_time(logger_func=logger.info)
-    async def _update_fs(self, fs_update: FileSystemOperationsUpdate):
-        if self._fs is None:
-            self.logger.error(f"self._fs is not created yet.")
-            return
+    async def on_event_from_fs(self, s, updates: list[tree_event.TreeEventType]):
+        """Called when a user action like create or unlink triggers changes
+        in VfsTree
+        """
+        self.logger.debug(f"on_event_from_fs({updates})")
 
-        async with self._fs._update_lock:
-            await self._fs.update(fs_update)
+        async with self._update_lock:
+            if self.fs.initialized:
+                await self._dispatch_tree_events_to_filesystem(updates)
+            else:
+                self.logger.warning(f"FileSystem is not initialized yet")
+
+    # endregion
 
     async def produce_vfs_tree(self):
         """Produce VfsTree"""
 
         self.logger.info(f"Producing VfsTree.")
+
         await self._producer.produce(
             self.resources,
             self._root_config,
-            self._vfs_tree,
+            self.vfs_tree,
         )
 
-    async def resume_dispatcher(self):
-        await self.events_dispatcher.resume()
+    async def _get_dir_content(self, path: str) -> vfs.DirContentProto:
+        return await self._vfs_tree.get_dir_content(path)
+        # d = await self.vfs_tree.get_dir(path)
 
     async def create_fs(self):
-        """Produce VfsTree and create `FileSystemOperations`"""
+        """Produce VfsTree and init `FileSystemOperations` with it"""
 
         await self.produce_vfs_tree()
 
-        root_contet = await self._vfs_tree.get_dir_content()
+        self.fs.init_root(await self._get_dir_content("/"))
 
-        self._fs.init_root(vfs.root(root_contet))
-        # self._fs = self.FileSystemOperations(root)
-
-    async def on_event_from_fs(self, sender, updates: list[TreeEventType]):
-        async with self._update_lock:
-            if self._fs._root:
-                await self._dispatch_to_filesystem(updates)
-
-    async def _on_vfs_tree_update(self, updates: list[TreeEventType]):
-        if len(updates) == 0:
+    async def _dispatch_tree_events_to_filesystem(
+        self, events: list[tree_event.TreeEventType[VfsTreeDir]]
+    ):
+        if not self.fs.initialized:
+            self.logger.error(f"fs is not initialized yet.")
             return
 
-        await self._dispatch_to_filesystem(updates)
+        if len(events) == 0:
+            return
 
-    async def _dispatch_to_filesystem(self, events: list[TreeEventType[VfsTreeDir]]):
         for e in events:
-            update = FileSystemOperationsUpdate()
+            fs_update = FileSystemOperationsUpdate()
 
-            if isinstance(e, TreeEventRemovedItems):
+            if isinstance(e, tree_event.TreeEventRemovedItems):
                 path = e.sender.path
 
                 for item in e.removed_items:
-                    update.removed_files.append(os.path.join(path, item.name))
+                    fs_update.removed_files.append(os.path.join(path, item.name))
 
-            elif isinstance(e, TreeEventNewItems):
+            elif isinstance(e, tree_event.TreeEventNewItems):
                 path = e.sender.path
 
                 for item in e.new_items:
                     if isinstance(item, vfs.FileLike):
-                        update.new_files[os.path.join(path, item.name)] = item
+                        fs_update.new_files[os.path.join(path, item.name)] = item
                     else:
-                        update.new_dirs[os.path.join(path, item.name)] = item
+                        fs_update.new_dirs[os.path.join(path, item.name)] = item
 
-            elif isinstance(e, TreeEventRemovedDirs):
+            elif isinstance(e, tree_event.TreeEventRemovedDirs):
                 for path in e.removed_dirs:
-                    update.removed_dirs.append(path)
+                    fs_update.removed_dirs.append(path)
 
-            elif isinstance(e, TreeEventUpdatedItems):
+            elif isinstance(e, tree_event.TreeEventUpdatedItems):
                 for path, item in e.updated_items.items():
-                    update.update_items[path] = item
+                    fs_update.update_items[path] = item
 
-            elif isinstance(e, TreeEventNewDirs):
+            elif isinstance(e, tree_event.TreeEventNewDirs):
                 for path in e.new_dirs:
-                    update.new_dirs[path] = await self._vfs_tree.get_dir_content(path)
+                    fs_update.new_dirs[path] = await self._get_dir_content(path)
 
-            await self._update_fs(update)
-
-        # return update
+            async with self.fs._update_lock:
+                await self.fs.update(fs_update)
 
     async def mount(
         self,
@@ -296,7 +331,9 @@ class TgmountBase(abc.ABC):
         debug_fuse=False,
         min_tasks=10,
     ):
-        """Mount process consists of two phases: fetching messages and building vfs root"""
+        """Mount process consists of two phases: fetching messages and building
+        vfs root"""
+
         mount_dir = none_fallback(mount_dir, self._mount_dir)
 
         if mount_dir is None:
@@ -304,7 +341,7 @@ class TgmountBase(abc.ABC):
 
         # self.logger.info(f"Building...")
 
-        assert self._events_dispatcher.is_paused
+        assert self.events_dispatcher.is_paused
 
         # fetch initial messages
         await self.fetch_messages()
@@ -313,7 +350,7 @@ class TgmountBase(abc.ABC):
         await self.create_fs()
 
         # pass updates that has been received during previous stages
-        await self._events_dispatcher.resume()
+        await self.events_dispatcher.resume()
 
         self.logger.info(f"Mounting into {mount_dir}")
 
@@ -323,18 +360,3 @@ class TgmountBase(abc.ABC):
             min_tasks=min_tasks,
             debug=debug_fuse,
         )
-
-
-class TgmountBaseMounter:
-    def __init__(self) -> None:
-        pass
-
-    def mount(
-        self,
-        tgm: TgmountBase,
-        *,
-        mount_dir: Optional[str] = None,
-        debug_fuse=False,
-        min_tasks=10,
-    ):
-        pass

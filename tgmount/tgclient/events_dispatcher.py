@@ -4,7 +4,7 @@ from telethon import events
 
 from tgmount import config
 from tgmount.tgclient.client_types import TgmountTelegramClientGetMessagesProto
-from tgmount.tgclient.message_reaction_event import MessageReactionEvent
+from tgmount.tgclient.message_reaction_event import MessageReaction
 from tgmount.tgclient.message_source_types import MessageSourceProto
 from tgmount.tgclient.message_types import MessageProto
 from tgmount.tgclient.types import EntityId
@@ -16,13 +16,14 @@ EventType = (
     events.NewMessage.Event
     | events.MessageDeleted.Event
     | events.MessageEdited.Event
-    | MessageReactionEvent.Event
+    | MessageReaction.Event
 )
 
 
 class TelegramEventsDispatcher:
     """
-    Connects TelegramClient to MessageSources. Receives telethon.events and passes them to the corresponding messages sources.
+    Connects TelegramClient to MessageSources. Receives telethon.events and
+    passes them to the corresponding messages sources.
 
     Puts events in a queue when paused
 
@@ -34,9 +35,7 @@ class TelegramEventsDispatcher:
     def __init__(self) -> None:
         # self._client = client
         self._sources: dict[EntityId, MessageSourceProto[MessageProto]] = {}
-
         self._sources_events_queue: dict[EntityId, list[EventType]] = {}
-
         self._is_paused = True
 
     @property
@@ -48,21 +47,30 @@ class TelegramEventsDispatcher:
         entity_id: EntityId,
         source: MessageSourceProto[MessageProto],
     ):
-        """events from `entity_id` will be turned into `MessageSource` methods calls"""
+        """events from `entity_id` will be turned into `MessageSource` methods
+        calls"""
 
         self.logger.trace(f"connect({entity_id})")
         self._sources[entity_id] = source
 
-    async def process_new_message_event(self, chat_id, ev):
+    async def process_new_message_event(
+        self, chat_id: EntityId, ev: events.NewMessage.Event
+    ):
         await self._on_new_message(chat_id, ev)
 
-    async def process_delete_message_event(self, chat_id, ev):
+    async def process_delete_message_event(
+        self, chat_id: EntityId, ev: events.MessageDeleted.Event
+    ):
         await self._on_delete_message(chat_id, ev)
 
-    async def process_edited_message_event(self, chat_id, ev):
+    async def process_edited_message_event(
+        self,
+        chat_id: EntityId,
+        ev: events.MessageEdited.Event | MessageReaction.Event,
+    ):
         await self._on_edited_message(chat_id, ev)
 
-    def _get_total(self):
+    def _get_total_enqueued(self):
         total = {}
         for k, v in self._sources_events_queue.items():
             total[k] = len(v)
@@ -74,7 +82,8 @@ class TelegramEventsDispatcher:
         event: EventType,
     ):
         self.logger.debug(
-            f"_enqueue_event: {event.__class__}. Total events enqued: {self._get_total()}"
+            f"_enqueue_event: {event.__class__}. Total events enqueued: "
+            f"{self._get_total_enqueued()}"
         )
 
         q = self._sources_events_queue.get(chat_id, [])
@@ -84,7 +93,7 @@ class TelegramEventsDispatcher:
     async def _on_edited_message(
         self,
         chat_id: EntityId,
-        event: events.MessageEdited.Event | MessageReactionEvent.Event,
+        event: events.MessageEdited.Event | MessageReaction.Event,
     ):
         if self.is_paused:
             await self._enqueue_event(chat_id, event)
@@ -94,7 +103,8 @@ class TelegramEventsDispatcher:
             self.logger.debug(f"_on_edited_message: {event.id}")
         else:
             self.logger.debug(
-                f"_on_edited_message: message {event.msg_id} reactions update {event.reactions}"
+                f"_on_edited_message: message {event.msg_id} reactions update "
+                f"{event.reactions}"
             )
 
         source = self._sources.get(chat_id)
@@ -103,7 +113,7 @@ class TelegramEventsDispatcher:
             self.logger.error(f"_on_edited_message: Missing {chat_id}")
             return
 
-        if isinstance(event, MessageReactionEvent.Event):
+        if isinstance(event, MessageReaction.Event):
             messages = await source.get_by_ids([event.msg_id])
 
             if messages is None or len(messages) == 0:
@@ -122,7 +132,11 @@ class TelegramEventsDispatcher:
             )
             await source.edit_messages([event.message])
 
-    async def _on_new_message(self, chat_id: EntityId, event: events.NewMessage.Event):
+    async def _on_new_message(
+        self,
+        chat_id: EntityId,
+        event: events.NewMessage.Event,
+    ):
         self.logger.debug(f"New message: {MessageProto.repr_short(event.message)}")
 
         self.logger.trace(event.message)
@@ -163,7 +177,9 @@ class TelegramEventsDispatcher:
     async def resume(self):
         """Dispatches the accumulated events to sources"""
         self._is_paused = False
-        self.logger.debug(f"resume(). Total events enqued: {self._get_total()}")
+        self.logger.debug(
+            f"resume(). Total events enqued: {self._get_total_enqueued()}"
+        )
 
         for chat_id, q in self._sources_events_queue.items():
             self.logger.debug(f"Resume {chat_id}, {len(q)} events")
@@ -172,7 +188,7 @@ class TelegramEventsDispatcher:
                 if isinstance(ev, events.NewMessage.Event):
                     await self._on_new_message(chat_id, ev)
                 elif isinstance(
-                    ev, (events.MessageEdited.Event, MessageReactionEvent.Event)
+                    ev, (events.MessageEdited.Event, MessageReaction.Event)
                 ):
                     await self._on_edited_message(chat_id, ev)
                 elif isinstance(ev, events.MessageDeleted().Event):

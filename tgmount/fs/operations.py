@@ -8,5 +8,5 @@ class FileSystemOperations(
     FileSystemOperationsWritable,
     FileSystemOperationsUpdatable,
 ):
-    def __init__(self, root: vfs.DirLike | None):
+    def __init__(self, root: vfs.DirContentProto | None):
         super().__init__(root)

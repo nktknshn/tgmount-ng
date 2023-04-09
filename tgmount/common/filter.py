@@ -3,10 +3,13 @@ from typing import Callable, Generic, Iterable, Protocol, TypeGuard, TypeVar
 
 M = TypeVar("M")
 
+""" Applied to a single message """
 FilterSingleMessage = Callable[[M], bool]
 
 
 class FilterAllMessagesProto(Generic[M], Protocol):
+    """Applied to a list of messages"""
+
     @abstractmethod
     def __init__(self, **kwargs) -> None:
         pass

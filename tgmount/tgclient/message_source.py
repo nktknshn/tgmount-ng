@@ -92,7 +92,8 @@ class MessageSource(MessageSourceProto, Generic[M]):
 
         if old_messages is None:
             self._logger.warning(
-                f"edit_messages(). Some of the edited messages has not been found in the message source: {[MessageProto.repr_short(m) for m in _not_found]}"
+                f"edit_messages(). Some of the edited messages has not been"
+                f"found in the message source: {[MessageProto.repr_short(m) for m in _not_found]}"
             )
             return
 
