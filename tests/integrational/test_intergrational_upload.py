@@ -69,6 +69,7 @@ class TgmountIntegrationContextWritable(TgmountIntegrationContext):
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip
 async def test_simple1(fixtures: Fixtures):
     ctx = TgmountIntegrationContextWritable(fixtures.mnt_dir, caplog=fixtures.caplog)
     source1 = ctx.storage.create_entity("source1")

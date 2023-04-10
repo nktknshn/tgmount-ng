@@ -35,7 +35,7 @@ def add_get_messages_args(parser: ArgumentParser):
 
 
 def add_mount_arguments(command_mount: ArgumentParser):
-    command_mount.add_argument("entity", type=str)
+    command_mount.add_argument("entity", type=int_or_string)
     command_mount.add_argument("mount_dir", type=str, metavar="mount-dir")
 
     config_arg = command_mount.add_mutually_exclusive_group()
@@ -90,12 +90,13 @@ async def mount(
 ):
     builder = TgmountBuilder()
     validator = ConfigValidator(builder)
+    source_id = str(args.entity)
 
     producer = None
     root_content = {
-        "source": {"source": args.entity, "recursive": True},
+        "source": {"source": source_id, "recursive": True},
         "filter": "MessageDownloadable" if not args.mount_texts else "All",
-        ".sysinfo": {"producer": "SysInfo", "source": args.entity},
+        ".sysinfo": {"producer": "SysInfo", "source": source_id},
     }
 
     if yes(args.root_config, str):
@@ -132,6 +133,7 @@ async def mount(
 
     logger.debug(f"{root_content}")
     config_parser = ConfigParser()
+
     cfg = config.Config(
         client=config.Client(
             session=session,
@@ -141,7 +143,7 @@ async def mount(
         ),
         message_sources=config.MessageSources(
             sources={
-                args.entity: config.MessageSource(
+                source_id: config.MessageSource(
                     entity=args.entity,
                     filter=args.filter,
                     from_user=args.from_user,
