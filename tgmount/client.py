@@ -8,6 +8,7 @@ import logging
 from tgmount import cli
 from tgmount import main as main_settings
 from tgmount.cli.util import get_client, get_tgapp_and_session
+from tgmount.cli.util.read_env import try_get_tgapp_and_session
 
 from tgmount.main.util import run_main
 from tgmount.tglog import init_logging
@@ -85,19 +86,20 @@ async def client_main(loop):
     elif args.command == "list":
         command_list.print_help()
     elif args.command == "mount-config":
-        session, api_id, api_hash = get_tgapp_and_session(args)
+        session, api_id, api_hash = try_get_tgapp_and_session(args)
 
         api_credentials = (
             (api_id, api_hash) if api_id is not None and api_hash is not None else None
         )
+
         await cli.mount_config(
             args.config,
             api_credentials=api_credentials,
-            session=args.session,
+            session=session,
             mount_dir=args.mount_dir,
             debug_fuse=args.debug_fuse,
             min_tasks=args.min_tasks,
-            use_ipv6=args.use_ipv6,
+            # use_ipv6=args.use_ipv6,
         )
     elif args.command == "mount":
         session, api_id, api_hash = get_tgapp_and_session(args)

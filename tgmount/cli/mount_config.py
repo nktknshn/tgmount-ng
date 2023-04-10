@@ -36,7 +36,6 @@ async def mount_config(
     debug_fuse=False,
     run_server=False,
     min_tasks=10,
-    use_ipv6=False,
 ):
     builder = TgmountBuilder()
     validator = ConfigValidator(builder)
@@ -58,7 +57,7 @@ async def mount_config(
         cfg.client = replace(cfg.client, session=session)
 
     if api_credentials is not None:
-        logger.info(f"Using api credentials from os enviroment or args")
+        logger.info(f"Using api credentials from os environment or args")
         cfg.client = replace(
             cfg.client, api_id=api_credentials[0], api_hash=api_credentials[1]
         )

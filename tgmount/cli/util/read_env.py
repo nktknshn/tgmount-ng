@@ -1,6 +1,6 @@
 import argparse
 import os
-from typing import Optional, TypedDict
+from typing import Any, Optional, TypedDict
 
 from tgmount.error import TgmountError
 
@@ -30,7 +30,7 @@ def read_os_env(TGAPP="TGAPP", TGSESSION="TGSESSION") -> ReadosEnv:
     api_id = None
     api_hash = None
 
-    if TGAPP is not None:
+    if TGAPP is not None and TGAPP != "":
         api_id, api_hash = parse_tgapp_str(TGAPP)
 
     return ReadosEnv(
@@ -40,7 +40,9 @@ def read_os_env(TGAPP="TGAPP", TGSESSION="TGSESSION") -> ReadosEnv:
     )
 
 
-def get_tgapp_and_session(args: argparse.Namespace):
+def try_get_tgapp_and_session(
+    args: argparse.Namespace,
+) -> tuple[str | None, int | None, str | None]:
     os_env = read_os_env()
 
     api_id = os_env["api_id"]
@@ -52,6 +54,12 @@ def get_tgapp_and_session(args: argparse.Namespace):
 
     if args.session is not None:
         session = args.session
+
+    return session, api_id, api_hash
+
+
+def get_tgapp_and_session(args: argparse.Namespace) -> tuple[str, int, str]:
+    session, api_id, api_hash = try_get_tgapp_and_session(args)
 
     if session is None or api_id is None or api_hash is None:
         raise TgmountError(

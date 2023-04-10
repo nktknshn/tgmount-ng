@@ -2,12 +2,9 @@ import logging
 import pytest
 from tests.helpers.mocked.mocked_message import MockedReactions
 
-import tgmount
-from tests.integrational.helpers import mdict
 from tests.helpers.config import create_config
 from tests.integrational.context import Context
 from tgmount.fs.operations import FileSystemOperations
-from tgmount.tgmount.root_config_reader import TgmountConfigReader
 from tgmount.tgmount.vfs_tree import VfsTree, VfsTreeDir
 
 from .fixtures import *
