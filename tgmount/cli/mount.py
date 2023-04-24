@@ -1,3 +1,4 @@
+import sqlite3
 from argparse import ArgumentParser, Namespace
 from typing import Optional
 
@@ -5,13 +6,14 @@ import yaml
 
 from tgmount import config
 from tgmount.config.config import ConfigParser
-from tgmount.tgmount.validator import ConfigValidator
 from tgmount.config.types import parse_datetime
+from tgmount.error import TgmountError
 from tgmount.tgclient.fetcher import TelegramMessagesFetcher
 from tgmount.tgmount.tgmount_builder import TgmountBuilder
-from tgmount.error import TgmountError
 from tgmount.tgmount.tgmount_providers import ProducersProvider
+from tgmount.tgmount.validator import ConfigValidator
 from tgmount.util import int_or_string, map_none, yes
+
 from .logger import logger
 
 
@@ -87,9 +89,11 @@ async def mount(
     *,
     api_credentials: Optional[tuple[int, str]] = None,
     session: Optional[str] = None,
+    loop=None,
 ):
     builder = TgmountBuilder()
     validator = ConfigValidator(builder)
+
     source_id = str(args.entity)
 
     producer = None
@@ -103,6 +107,7 @@ async def mount(
         try:
             with open(args.root_config, "r+") as f:
                 cfg_dict: dict = yaml.safe_load(f)
+                # XXX validate
                 root_content.update(cfg_dict)
         except Exception as e:
             raise TgmountError(f"Error load config file:\n\n{e}")
@@ -114,10 +119,10 @@ async def mount(
             raise TgmountError(f"Invalid producer: {args.producer}")
 
     if api_credentials is None:
-        raise TgmountError(f"Missing api_credentials")
+        raise TgmountError("Missing api_credentials")
 
     if session is None:
-        raise TgmountError(f"Missing session")
+        raise TgmountError("Missing session")
 
     if yes(producer):
         root_content["producer"] = {
@@ -164,10 +169,17 @@ async def mount(
 
     await validator.verify_config(cfg)
 
-    tgm = await builder.create_tgmount(cfg)
+    logger.debug("Creating tgmount")
 
     try:
-        logger.debug(f"Connecting Telegram")
+        tgm = await builder.create_tgmount(cfg, loop=loop)
+    except sqlite3.OperationalError as e:
+        logger.error(f"{e}")
+        # logger.error(f"Database is locked")
+        return
+
+    try:
+        logger.debug("Connecting Telegram")
         await tgm.client.auth()
     except Exception as e:
         # await tgm.client.disconnect()
@@ -175,7 +187,7 @@ async def mount(
 
     if not tgm.client.is_connected():  # type: ignore
         raise TgmountError(
-            f"Error while connecting the client. Check api_id and api_hash"
+            "Error while connecting the client. Check api_id and api_hash"
         )
 
     await tgm.mount(

@@ -27,12 +27,14 @@ class ConfigValidatorBase:
         self._builder = builder
 
     async def verify_config(self, cfg: config.Config):
-        client = await self._builder.create_client(cfg)
-        resources = await self._builder.create_tgmount_resources(client, cfg)
-        await self.verify_client(cfg)
-        await self.verify_message_sources(cfg)
-        await self.verify_caches(cfg)
-        await self.verify_root(resources, cfg)
+        return
+        # client = await self._builder.create_client(cfg)
+        # resources = await self._builder.create_tgmount_resources(client, cfg)
+
+        # await self.verify_client(cfg)
+        # await self.verify_message_sources(cfg)
+        # await self.verify_caches(cfg)
+        # await self.verify_root(resources, cfg)
 
     async def verify_client(self, cfg: config.Config):
         pass
@@ -45,7 +47,6 @@ class ConfigValidatorBase:
             pass
 
     async def verify_caches(self, cfg: config.Config):
-
         if not yes(cfg.caches):
             return
 

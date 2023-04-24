@@ -283,8 +283,9 @@ class ConfigReader(CachesReader, ConfigRootReader):
         self.string("session")
         self.integer("api_id")
         self.string("api_hash")
-        self.getter("request_size", get_bytes_count)
+        self.getter("request_size", get_bytes_count, optional=True)
         self.boolean("use_ipv6", optional=True, default=False)
+
         return config.Client(**self.get())
 
     def read_message_sources(self):

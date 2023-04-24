@@ -53,6 +53,8 @@ class TgmountBuilderBase(abc.ABC):
     producers: ProducersProviderBase
 
     async def create_client(self, cfg: config.Config, **kwargs):
+        self.logger.debug("create_client")
+
         return self.TelegramClient(
             cfg.client.session,
             cfg.client.api_id,

@@ -13,7 +13,7 @@ from tests.helpers.mount import handle_mount
 from tests.helpers.config import create_config
 from tgmount import tglog, vfs
 from tgmount.config.config import ConfigParser
-from tgmount.config.config_type import ConfigRootParserProto
+from tgmount.config.config_type import ConfigParserProto, ConfigRootParserProto
 from tgmount.config.types import Config, DirConfig
 from tgmount.main.util import mount_ops
 from tgmount.tgclient.guards import MessageWithText
@@ -157,7 +157,7 @@ class TgmountIntegrationContext(MountContext):
         *,
         caplog=None,
         default_config=None,
-        config_parser: ConfigRootParserProto = ConfigParser(),
+        config_parser: ConfigParserProto = ConfigParser(),
     ) -> None:
         self._mnt_dir = mnt_dir
         self.caplog = caplog
@@ -203,7 +203,11 @@ class TgmountIntegrationContext(MountContext):
     def client(self):
         return self._client
 
-    def set_config(self, config: Config):
+    def set_config(self, config: Config | Mapping):
+        if isinstance(config, Mapping):
+            self._default_config = self.config_parser.parse_config(config)
+            return
+            
         self._default_config = config
 
     def create_config(self, root: DirConfig):
@@ -234,13 +238,8 @@ class TgmountIntegrationContext(MountContext):
     async def run_test(
         self,
         test_func: Callable[[], Awaitable[Any]],
-        # config_reader: ConfigRootParserProto,
         cfg_or_root: config.Config | DirConfig | Mapping | None = None,
-        # debug=None,
     ):
-        # _debug = self.debug
-        # self.debug = none_fallback(debug, self.debug)
-
         if isinstance(cfg_or_root, Mapping):
             cfg_or_root = self.config_parser.parse_root(cfg_or_root)
 

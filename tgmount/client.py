@@ -107,11 +107,11 @@ async def client_main(loop):
         api_credentials = (
             (api_id, api_hash) if api_id is not None and api_hash is not None else None
         )
+
         await cli.mount(
-            args,
-            api_credentials=api_credentials,
-            session=session,
+            args, api_credentials=api_credentials, session=session, loop=loop
         )
+
     elif args.command == "stats":
         session, api_id, api_hash = get_tgapp_and_session(args)
 

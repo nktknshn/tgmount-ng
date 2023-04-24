@@ -8,7 +8,6 @@ from tgmount.util import yes
 
 
 def init_logging(debug_level: int = 0, debug_fs_ops=False):
-
     logging.getLogger("asyncio").setLevel(logging.CRITICAL)
     logging.getLogger("telethon").setLevel(logging.ERROR)
 
@@ -16,7 +15,7 @@ def init_logging(debug_level: int = 0, debug_fs_ops=False):
     tgmount.cli.logger.setLevel(debug_level)
 
     tgmount.tgmount.filters.logger.setLevel(logging.INFO)
-    # tgmount.tgmount.root_config_reader.TgmountConfigReader.logger.setLevel(logging.INFO)
+    tgmount.config.logger.setLevel(logging.INFO)
 
     tgmount.tgmount.producers.producer_plain.VfsTreeProducerPlainDir.logger.setLevel(
         logging.INFO
@@ -85,7 +84,6 @@ class TgmountLogger(logging.Logger):
         return child
 
     def makeRecord(self, *args, **kwargs) -> logging.LogRecord:
-
         rec = super().makeRecord(*args, **kwargs)
 
         if self.suffix_as_tag and yes(self.parent):
@@ -162,7 +160,6 @@ class Formatter(logging.Formatter):
         return log_str
 
     def format(self, rec: TgmountLogRecord) -> str:
-
         if rec.levelno not in self.COLORS:
             return self._format(rec)
 

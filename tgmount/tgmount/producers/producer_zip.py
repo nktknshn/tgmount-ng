@@ -46,6 +46,8 @@ class VfsProducerZip(VfsTreeProducerPlainDir):
         new_files: Mapping[str, tuple[MessageProto, vfs.FileLike]],
         update_content_dict: Mapping[str, vfs.FileLike],
     ):
+        self._logger.debug(f"update_items_in_vfs_tree()")
+
         result = {}
 
         for old_file_name, new_file in update_content_dict.items():
@@ -102,7 +104,6 @@ class VfsProducerZip(VfsTreeProducerPlainDir):
 
     async def _add_zip_file(self, zip_file: vfs.FileLike):
         try:
-
             zip_tree = await self._dir_content_zip_factory.get_ziptree(zip_file.content)
         except BadZipFile:
             self._logger.warning(f"{zip_file} is a bad zip file")
@@ -178,7 +179,6 @@ class VfsProducerZip(VfsTreeProducerPlainDir):
         config: Mapping,
         tree_dir: VfsTreeDir,
     ):
-
         return VfsProducerZip(
             tree_dir, vfs_config, props=WrapperZipsAsDirsProps.from_config(config)
         )

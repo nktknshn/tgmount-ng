@@ -57,7 +57,6 @@ class FileSystemOperationsUpdatable(FileSystemOperations):
         self._removed_items = []
 
     async def update(self, update: FileSystemOperationsUpdate):
-
         for f in update.new_files:
             self.logger.info(f"New file: {f}")
 
@@ -96,7 +95,6 @@ class FileSystemOperationsUpdatable(FileSystemOperations):
             self.add_subitem(filelike, parent_item.inode)
 
         for path, dir_like_or_content in update.new_dirs.items():
-
             parent_path = os.path.dirname(path)
             name = os.path.basename(path)
             parent_item = self.inodes.get_by_path(parent_path)
@@ -119,7 +117,6 @@ class FileSystemOperationsUpdatable(FileSystemOperations):
             self.add_subitem(vfs_item, parent_item.inode)
 
         for path in update.removed_files:
-
             self.logger.info(f"Removed file: {path}")
 
             item = self.inodes.get_by_path(path)
@@ -136,6 +133,8 @@ class FileSystemOperationsUpdatable(FileSystemOperations):
             await self._remove_item(item)
 
         for path in update.removed_dirs:
+            self.logger.info(f"Removed dir: {path}")
+
             item = self.inodes.get_by_path(path)
 
             if item is None:

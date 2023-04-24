@@ -20,12 +20,13 @@ async def get_message_sender_display_name(
     include_username=False,
 ):
     sender = await m.get_sender()
+
     key = None
 
     if sender is None:
         return None
 
-    if sender.username is not None:
+    if hasattr(sender, "username") and sender.username is not None:
         key = sender.username
 
     if key is None:
@@ -44,7 +45,6 @@ def get_get_key(*, use_get_sender=True):
 
     @measure_time(logger_func=_logger.getChild("VfsTreeDirBySender").info, threshold=3)
     async def get_key(m: MessageProto) -> str | None:
-
         if m.from_id is None:
             return
 
@@ -65,7 +65,6 @@ def get_get_key(*, use_get_sender=True):
 async def group_by_sender(
     messages: Iterable[MessageProto], minimum=1, use_get_sender=False
 ) -> tuple[Mapping[str, list[MessageProto]], list[MessageProto], list[MessageProto],]:
-
     return await func.group_by_func_async(
         get_get_key(use_get_sender=use_get_sender),
         messages,
@@ -84,7 +83,6 @@ class VfsTreeDirBySender(VfsTreeProducerGrouperBase, VfsTreeProducerProto):
     async def from_config(
         cls, resources, config: VfsTreeProducerConfig, arg: Mapping, sub_dir
     ):
-
         return VfsTreeDirBySender(
             resources=resources,
             tree_dir=sub_dir,
@@ -97,7 +95,6 @@ class VfsTreeDirBySender(VfsTreeProducerGrouperBase, VfsTreeProducerProto):
         )
 
     async def group_messages(self, messages: Iterable[MessageProto]) -> GroupedMessages:
-
         by_user, less, nones = await group_by_sender(
             messages, minimum=1, use_get_sender=self.use_get_sender
         )

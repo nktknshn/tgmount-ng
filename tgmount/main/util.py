@@ -16,7 +16,7 @@ logger = logging.getLogger("tgvfs")
 
 
 def read_tgapp_api(tgapp_file="tgapp.txt"):
-    if "TGAPP" in os.environ:
+    if "TGAPP" in os.environ and ":" in os.environ:
         [api, hash] = os.environ["TGAPP"].split(":")
 
         api_id = int(api)
@@ -66,7 +66,6 @@ async def mount_ops(
 
 
 def run_main(main_func, forever=None, loop=None):
-
     loop = loop if loop is not None else asyncio.get_event_loop()
 
     loop.set_debug(True)

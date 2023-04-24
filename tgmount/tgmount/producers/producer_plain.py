@@ -41,7 +41,6 @@ class VfsTreeProducerPlainDir(VfsTreeProducerProto):
         arg: Mapping,
         tree_dir: VfsTreeDir,
     ):
-
         return VfsTreeProducerPlainDir(tree_dir, vfs_config)
 
     async def add_items_to_vfs_tree(self, items: Sequence[vfs.DirContentItem]):
@@ -55,7 +54,6 @@ class VfsTreeProducerPlainDir(VfsTreeProducerProto):
 
     # @measure_time(logger_func=print)
     async def produce(self):
-
         _messages = MessagesCollection.from_iterable(await self._config.get_messages())
 
         self._logger.debug(f"Producing from {len(_messages)} messages...")
@@ -162,7 +160,6 @@ class VfsTreeProducerPlainDir(VfsTreeProducerProto):
         await self._tree_dir.update_content(update_content_dict)
 
     async def update_new_messages(self, source, new_messages: list[MessageProto]):
-
         self._logger.debug(
             f"update_new_messages({list(map(lambda m: m.id, new_messages))})"
         )
@@ -183,7 +180,7 @@ class VfsTreeProducerPlainDir(VfsTreeProducerProto):
         )
 
         if len(new_files):
-            await self._tree_dir.put_content(new_files)
+            await self.add_items_to_vfs_tree(new_files)
             # await self._tree_dir.put_content(new_files)
 
     async def update_removed_messages(

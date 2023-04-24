@@ -2,8 +2,7 @@ import asyncio
 import logging
 
 import typing
-from abc import abstractmethod
-from typing import Optional, Protocol
+from typing import Optional
 
 import telethon
 from telethon import TelegramClient
@@ -40,7 +39,7 @@ class TgmountTelegramClient(
 
     def __init__(
         self,
-        session_user_id,
+        session,
         api_id,
         api_hash,
         *,
@@ -66,7 +65,7 @@ class TgmountTelegramClient(
         receive_updates: bool = True,
     ):
         super().__init__(
-            session_user_id,
+            session,
             api_id,
             api_hash,
             connection=connection,
@@ -91,11 +90,9 @@ class TgmountTelegramClient(
             proxy=proxy,
         )  # type: ignore
 
-        # self.api_id = api_id
-        # self.api_hash = api_hash
         self.logger = TgmountTelegramClient.logger.getChild(
-            # self.session.filename if yes(self.session) else None,
-            map_none_else(self.session, lambda s: s.filename, "No session"),
+            # map_none_else(self.session, lambda s: s.filename, "No session"),
+            session,
             suffix_as_tag=True,
         )
 

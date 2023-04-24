@@ -47,7 +47,6 @@ producer_cfg = {
 
 
 async def prepare_ctx(fixtures: Fixtures):
-
     ctx = Context.from_fixtures(fixtures)
 
     config = create_config(
@@ -64,8 +63,11 @@ async def prepare_ctx(fixtures: Fixtures):
 
 
 @pytest.mark.asyncio
-async def test_simple1(fixtures: Fixtures):
+async def test_simple_remove1(fixtures: Fixtures):
+    """Unpacked zip archive will be removed when a message removed"""
     ctx = await prepare_ctx(fixtures)
+    # ctx.debug = logging.DEBUG
+
     fname1 = ctx.files.zip_debrecen.basename
     fname2 = ctx.files.zip_bandcamp.basename
 
@@ -85,25 +87,18 @@ async def test_simple1(fixtures: Fixtures):
         }
 
         assert await ctx.listdir_set("/", f"1_{fname1}") == set(fls1.keys())
-
         assert await ctx.listdir_set("/", f"2_{fname2}") == set(fls2.keys())
 
         await ctx.client.delete_messages(ctx.source1.entity_id, msg_ids=[1])
 
-        assert await ctx.listdir_set("/") == {
-            f"2_{fname2}",
-        }
+        assert await ctx.listdir_set("/") == {f"2_{fname2}"}
+        assert await ctx.listdir_set("/", f"2_{fname2}") == set(fls2.keys())
 
-    # await ctx.run_test(test)
-    await ctx.run_test(
-        test,
-        cfg_or_root=producer_cfg,
-    )
+    await ctx.run_test(test, cfg_or_root=producer_cfg)
 
 
 @pytest.mark.asyncio
-async def test_simple2(fixtures: Fixtures):
-
+async def test_simple_remove_single_folder(fixtures: Fixtures):
     ctx = await prepare_ctx(fixtures)
 
     fname1 = ctx.files.zip_debrecen.basename
@@ -133,16 +128,6 @@ async def test_simple2(fixtures: Fixtures):
             f"2_{fname2}",
         }
 
-    # await ctx.run_test(
-    #     test,
-    #     cfg_or_root=mdict(root_cfg1)
-    #     .update(
-    #         {"skip_single_root_subfolder": True},
-    #         at="/wrappers/ZipsAsDirs",
-    #     )
-    #     .get(),
-    # )
-
     await ctx.run_test(
         test,
         cfg_or_root=mdict(producer_cfg)
@@ -155,14 +140,13 @@ async def test_simple2(fixtures: Fixtures):
 
 
 @pytest.mark.asyncio
-async def test_simple3(fixtures: Fixtures):
-
+async def test_simple_remove_hide_files_false(fixtures: Fixtures):
+    """Both file and directory removed"""
     ctx = await prepare_ctx(fixtures)
+    ctx.debug = logging.DEBUG
 
     fname1 = ctx.files.zip_debrecen.basename
     fname2 = ctx.files.zip_bandcamp.basename
-
-    # ctx.debug = logging.DEBUG
 
     async def test():
         assert await ctx.listdir_set("/") == {
@@ -179,16 +163,6 @@ async def test_simple3(fixtures: Fixtures):
             f"2_{fname2}_unzipped",
         }
 
-    # await ctx.run_test(
-    #     test,
-    #     cfg_or_root=mdict(root_cfg1)
-    #     .update(
-    #         {"hide_zip_files": False},
-    #         at="/wrappers/ZipsAsDirs",
-    #     )
-    #     .get(),
-    # )
-
     await ctx.run_test(
         test,
         cfg_or_root=mdict(producer_cfg)
@@ -202,7 +176,6 @@ async def test_simple3(fixtures: Fixtures):
 
 @pytest.mark.asyncio
 async def test_simple4(fixtures: Fixtures):
-
     ctx = await prepare_ctx(fixtures)
 
     fname1 = ctx.files.zip_debrecen.basename
@@ -228,8 +201,48 @@ async def test_simple4(fixtures: Fixtures):
 
 
 @pytest.mark.asyncio
-async def test_simple_edit_message(fixtures: Fixtures):
+async def test_simple_new_message(fixtures: Fixtures):
+    ctx = Context.from_fixtures(fixtures)
 
+    ctx.set_config(
+        {
+            "client": {"api_id": 1243, "api_hash": "abcd", "session": "tgfs"},
+            "message_sources": {"source1": {"entity": "source1"}},
+            "root": {
+                "source": "source1",
+                "filter": "MessageDownloadable",
+                "producer": {
+                    "UnpackedZip": {
+                        "fix_id3v1": False,
+                        "skip_single_root_subfolder": False,
+                    }
+                },
+            },
+        }
+    )
+
+    await ctx.source1.document(file=ctx.files.zip_atrium.path)
+    zf2 = await ctx.files.zip_bandcamp.zip_file()
+    fls2 = z.zip_ls(zf2)
+
+    assert fls2
+
+    async def test():
+        assert await ctx.listdir_set(f"1_{ctx.files.zip_atrium.basename}") == {
+            f"Atrium Carceri",
+        }
+
+        await ctx.client.send_file("source1", ctx.files.zip_bandcamp.path)
+        assert await ctx.listdir_len("/") == 2
+        assert await ctx.listdir_set(f"2_{ctx.files.zip_bandcamp.basename}") == set(
+            fls2.keys()
+        )
+
+    await ctx.run_test(test)
+
+
+@pytest.mark.asyncio
+async def test_simple_edit_message(fixtures: Fixtures):
     ctx = await prepare_ctx(fixtures)
 
     fname1 = ctx.files.zip_debrecen.basename

@@ -5,7 +5,7 @@ client:
   session: tgfs
   api_id: 123
   api_hash: deadbeed121212121
-  request_size: 256KB
+  # request_size: 256KB
 
 # caches
 caches:
