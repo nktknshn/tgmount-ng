@@ -94,9 +94,9 @@ async def test_producer_by_sender_update(
     senders = ctx.senders
     source1 = ctx.source1
 
-    tgmount.fs.FileSystemOperations.logger.setLevel(logging.INFO)
+    # tgmount.fs.FileSystemOperations.logger.setLevel(logging.INFO)
     # prepared_ctx.debug = logging.DEBUG
-    ctx.debug = logging.DEBUG
+    # ctx.debug = logging.DEBUG
     # logging.root.setLevel(logging.DEBUG)
 
     async def test_update():

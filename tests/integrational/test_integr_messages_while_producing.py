@@ -15,7 +15,7 @@ async def test_message_while_producing(
 ):
     """Tests updates of the tree"""
     ctx = Context.from_fixtures(fixtures)
-    ctx.debug = logging.DEBUG
+    # ctx.debug = logging.DEBUG
 
     config = create_config(
         message_sources={"source1": "source1", "source2": "source2"},
@@ -26,7 +26,7 @@ async def test_message_while_producing(
     )
 
     ctx.set_config(config)
-    ctx.debug = logging.INFO
+    # ctx.debug = logging.INFO
 
     ctx.create_senders(3)
 

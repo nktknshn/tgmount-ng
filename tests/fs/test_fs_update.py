@@ -82,7 +82,7 @@ async def test_fs_rename_filelikes(mnt_dir, caplog):
 
         with pytest.raises(FileNotFoundError):
             s = await ctx.stat("subf/bbb")
-            print(s)
+            # print(s)
 
         assert (await ctx.stat("subf/ccc")).st_size == 3
 

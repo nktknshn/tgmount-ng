@@ -143,7 +143,7 @@ async def test_simple_remove_single_folder(fixtures: Fixtures):
 async def test_simple_remove_hide_files_false(fixtures: Fixtures):
     """Both file and directory removed"""
     ctx = await prepare_ctx(fixtures)
-    ctx.debug = logging.DEBUG
+    # ctx.debug = logging.DEBUG
 
     fname1 = ctx.files.zip_debrecen.basename
     fname2 = ctx.files.zip_bandcamp.basename
@@ -237,6 +237,76 @@ async def test_simple_new_message(fixtures: Fixtures):
         assert await ctx.listdir_set(f"2_{ctx.files.zip_bandcamp.basename}") == set(
             fls2.keys()
         )
+
+    await ctx.run_test(test)
+
+
+@pytest.mark.asyncio
+async def test_simple_new_message_skip_single_true(fixtures: Fixtures):
+    ctx = Context.from_fixtures(fixtures)
+
+    ctx.set_config(
+        {
+            "client": {"api_id": 1243, "api_hash": "abcd", "session": "tgfs"},
+            "message_sources": {"source1": {"entity": "source1"}},
+            "root": {
+                "source": "source1",
+                "filter": "MessageDownloadable",
+                "producer": {
+                    "UnpackedZip": {
+                        "fix_id3v1": False,
+                        "skip_single_root_subfolder": True,
+                    }
+                },
+            },
+        }
+    )
+
+    fls2 = z.zip_ls(await ctx.files.zip_atrium.zip_file(), ["Atrium Carceri"])
+    assert fls2
+
+    async def test():
+        await ctx.client.send_file("source1", ctx.files.zip_atrium.path)
+        assert await ctx.listdir_set(f"1_Atrium Carceri") == set(fls2.keys())
+
+    await ctx.run_test(test)
+
+
+@pytest.mark.asyncio
+async def test_simple_new_message_hide_zip_false(fixtures: Fixtures):
+    ctx = Context.from_fixtures(fixtures)
+
+    ctx.set_config(
+        {
+            "client": {"api_id": 1243, "api_hash": "abcd", "session": "tgfs"},
+            "message_sources": {"source1": {"entity": "source1"}},
+            "root": {
+                "source": "source1",
+                "filter": "MessageDownloadable",
+                "producer": {
+                    "UnpackedZip": {
+                        "hide_zip_files": False,
+                        "skip_single_root_subfolder": False,
+                    }
+                },
+            },
+        }
+    )
+
+    fls2 = z.zip_ls(await ctx.files.zip_atrium.zip_file())
+    assert fls2
+
+    async def test():
+        await ctx.client.send_file("source1", ctx.files.zip_atrium.path)
+
+        assert await ctx.listdir_set("/") == {
+            f"1_{ctx.files.zip_atrium.basename}",
+            f"1_{ctx.files.zip_atrium.basename}_unzipped",
+        }
+
+        assert await ctx.listdir_set(
+            f"1_{ctx.files.zip_atrium.basename}_unzipped"
+        ) == set(fls2.keys())
 
     await ctx.run_test(test)
 

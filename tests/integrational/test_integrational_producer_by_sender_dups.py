@@ -60,7 +60,7 @@ async def test_producer_by_sender_update_dups(
     tgmount.fs.logger.setLevel(logging.INFO)
     tgmount.tgmount.filters.logger.setLevel(logging.INFO)
 
-    ctx.debug = logging.DEBUG
+    # ctx.debug = logging.DEBUG
 
     # logging.root.setLevel(logging.INFO)
 

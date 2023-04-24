@@ -43,7 +43,7 @@ async def test_FileContentStringWritable(mnt_dir: str, caplog):
 @pytest.mark.asyncio
 async def test_fs_operations1(mnt_dir: str, caplog):
     ctx = Context(mnt_dir, caplog)
-    ctx.init_logging(logging.DEBUG, debug_fs_ops=True)
+    # ctx.init_logging(logging.DEBUG, debug_fs_ops=True)
 
     dir1_files = [
         vfs.vfile(

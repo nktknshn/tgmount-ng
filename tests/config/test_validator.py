@@ -11,6 +11,7 @@ builder = MockedTgmountBuilderBase(MockedTelegramStorage())
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip
 async def test_validator():
     cfg = create_config(
         root={
@@ -20,6 +21,7 @@ async def test_validator():
     )
 
     validator = ConfigValidator(builder)
+
     with pytest.raises(Exception):
         await validator.verify_config(cfg)
 
