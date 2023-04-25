@@ -24,6 +24,7 @@ from telethon import events
 from .message_reaction_event import MessageReactionEvent
 
 from .logger import logger as module_logger
+from ..constants import client_info
 
 
 class TgmountTelegramClient(
@@ -55,11 +56,11 @@ class TgmountTelegramClient(
         sequential_updates: bool = False,
         flood_sleep_threshold: int = 60,
         raise_last_call_error: bool = False,
-        device_model: Optional[str] = None,
-        system_version: Optional[str] = None,
-        app_version: Optional[str] = None,
-        lang_code: str = "en",
-        system_lang_code: str = "en",
+        device_model: Optional[str] = client_info['device_model'],
+        system_version: Optional[str] = client_info['system_version'],
+        app_version: Optional[str] = client_info['app_version'],
+        lang_code: str = client_info['lang_code'],
+        system_lang_code: str = client_info['system_lang_code'],
         loop: Optional[asyncio.AbstractEventLoop] = None,
         base_logger: Optional[typing.Union[str, logging.Logger]] = None,
         receive_updates: bool = True,

@@ -275,7 +275,7 @@ Exclude repeating documents
 
 Include messages that are not supported for mounting
 
-`--only-unique-docs`
+`--only-unsupported`
 
 Print only them
 
